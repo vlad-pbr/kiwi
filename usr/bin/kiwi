@@ -1,0 +1,21 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+import argparse
+import importlib
+import sys
+
+def pull():
+        pass
+
+def main():
+        parser = argparse.ArgumentParser('Kiwi (/ˈkiːwi/ KEE-wee) or kiwis are flightless birds native to New Zealand')
+        parser.add_argument('-m', '--module', type=str)
+        args = parser.parse_args()
+
+        if args.module:
+                sys.path.append("/etc/kiwi/modules/")
+                module = importlib.import_module(args.module)
+                module.run_me()
+
+if __name__ == "__main__":
+        main()
