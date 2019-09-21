@@ -123,7 +123,7 @@ def main():
 
 		module = importlib.import_module(args.module)
 		if hasattr(module, 'kiwi_main'):
-			module.main(args)
+			module.kiwi_main(args)
 		else:
         		kiwisay('this is not my module (missing kiwi_main())')
 
