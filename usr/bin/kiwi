@@ -2,43 +2,89 @@
 # -*- coding: utf-8 -*-
 import argparse
 import importlib
+import requests
+import urllib2
 import sys
 import os
 import errno
 
-modules_dir = "/etc/kiwi/modules"
+kiwi_local_modules_dir = "/etc/kiwi/modules/"
+kiwi_repo_modules_dir = "etc/kiwi/modules/"
+kiwi_repo_api = "https://api.github.com/repos/isLonerism/kiwi/contents/"
+kiwi_repo_raw = "https://raw.githubusercontent.com/isLonerism/kiwi/master/"
 
-# TODO pull file from repo
+def get_modules():
+	return [module['name'] for module in requests.get(kiwi_repo_api + kiwi_repo_modules_dir).json()]
+
+# TODO httperror
+def report(e, description=None, fatal=False):
+	print 'Error:',
+	
+	if description:
+		print str(description) + " (ERRNO {}: {})".format(e.errno, os.strerror(e.errno))
+	else:
+		print os.strerror(e.errno)
+	
+	if fatal:
+		exit()
+
+# TODO pull file from repo (with auth)
 def pull():
         pass
 
-def main():
-        parser = argparse.ArgumentParser('Kiwi (/ˈkiːwi/ KEE-wee) or kiwis are flightless birds native to New Zealand')
-        parser.add_argument('-m', '--module', type=str)
-	parser.add_argument('--get-modules', nargs='+')
+def get_file(url, dest):
+	# try:
+	response = requests.get(url)
+	if response.status_code is not 200:
+		raise requests.exceptions.HTTPError('file not found')
+	else:
+		with open(dest, 'w') as f:
+			f.write(response.text)
 
+def main():
 	# Create modules directory
 	try:
-		os.makedirs(modules_dir)
+		os.makedirs(kiwi_local_modules_dir)
 	except OSError as e:
 		if e.errno is not errno.EEXIST:
-			if errno.EACCES == e.errno:
-				print "Error: sudo required on kiwi setup (sudo kiwi)"
-			else:
-				print "Error: could not create modules directory {} (ERRNO {})".format(modules_dir, e.errno)
-				exit()
+			report(e, 'could not create modules directory {}'.format(kiwi_local_modules_dir), True)
 
+	# Parse args
+	parser = argparse.ArgumentParser('Kiwi (/ˈkiːwi/ KEE-wee) or kiwis are flightless birds native to New Zealand')
+        parser.add_argument('-m', '--module', type=str)
+        parser.add_argument('--list-modules', action="store_true")
+        parser.add_argument('--get-modules', nargs='*')
 	args = parser.parse_args()
 
-	if args.get_modules:
-		# Pull module(s)
-		pass
+	if args.list_modules:
+		print '\n'.join(get_modules())
 
+	if args.get_modules:
+		if 'all' in args.get_modules:
+			if len(args.get_modules) > 1:
+				print "Syntax Error: can't have 'all' argument with other modules listed."
+				print "Possible solutions:"
+				print "\t* kiwi --get-modules all"
+				print "\t* kiwi --get-modules " + ' '.join([module for module in args.get_modules if module != 'all'])
+			else:
+				args.get_modules = get_modules()
+
+		for module in args.get_modules:
+			if module[-3:] != '.py':
+				module = module + '.py'
+			print "Downloading {}...".format(module)
+
+			try:
+				get_file(kiwi_repo_raw + kiwi_repo_modules_dir + module, kiwi_local_modules_dir + module)
+			except requests.exceptions.HTTPError as e:
+				print 'ERROR: {}'.format(e)
+			except (IOError, OSError) as e:
+				report(e, 'could not write to file')
 	if args.module:
 		# Import module
-        	sys.path.append(modules_dir)
-        	module = importlib.import_module(args.module)
-        	module.main()
+        	sys.path.append(kiwi_local_modules_dir)
+        	module = importlib.import_module(args.module) # TODO handle missing module
+        	module.main(args)
 
 if __name__ == "__main__":
         main()
