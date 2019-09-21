@@ -3,6 +3,10 @@
 import argparse
 import importlib
 import sys
+import os
+import errno
+
+modules_dir = "/etc/kiwi/modules"
 
 # TODO pull file from repo
 def pull():
@@ -11,12 +15,30 @@ def pull():
 def main():
         parser = argparse.ArgumentParser('Kiwi (/ˈkiːwi/ KEE-wee) or kiwis are flightless birds native to New Zealand')
         parser.add_argument('-m', '--module', type=str)
-        args = parser.parse_args()
+	parser.add_argument('--get-modules', nargs='+')
 
-        if args.module:
-                sys.path.append("/etc/kiwi/modules/")
-                module = importlib.import_module(args.module)
-                module.run_me()
+	# Create modules directory
+	try:
+		os.makedirs(modules_dir)
+	except OSError as e:
+		if e.errno is not errno.EEXIST:
+			if errno.EACCES == e.errno:
+				print "Error: sudo required on kiwi setup (sudo kiwi)"
+			else:
+				print "Error: could not create modules directory {} (ERRNO {})".format(modules_dir, e.errno)
+				exit()
+
+	args = parser.parse_args()
+
+	if args.get_modules:
+		# Pull module(s)
+		pass
+
+	if args.module:
+		# Import module
+        	sys.path.append(modules_dir)
+        	module = importlib.import_module(args.module)
+        	module.main()
 
 if __name__ == "__main__":
         main()
