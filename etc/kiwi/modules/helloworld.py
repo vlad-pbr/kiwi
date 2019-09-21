@@ -1,3 +1,3 @@
 #!/usr/bin/env python2
-def main(args):
+def kiwi_main(args):
 	print "Hello, world!"

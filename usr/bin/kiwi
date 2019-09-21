@@ -3,6 +3,7 @@
 import argparse
 import importlib
 import requests
+import imp
 import urllib2
 import sys
 import os
@@ -13,10 +14,47 @@ kiwi_repo_modules_dir = "etc/kiwi/modules/"
 kiwi_repo_api = "https://api.github.com/repos/isLonerism/kiwi/contents/"
 kiwi_repo_raw = "https://raw.githubusercontent.com/isLonerism/kiwi/master/"
 
-def get_modules():
+def kiwisay(jibberish):
+	print 'kiwi: {}'.format(jibberish)
+
+def module_exists(module):
+	try:
+		imp.find_module(module)
+	except ImportError:
+		return False
+	return True
+
+def get_module_list():
 	return [module['name'] for module in requests.get(kiwi_repo_api + kiwi_repo_modules_dir).json()]
 
-# TODO httperror
+# TODO update as well
+def get_modules(modules, fatal=False):
+	modules_fetched = 0
+	modules_current = 0
+        for module in modules:
+		modules_current += 1
+                if module[-3:] != '.py':
+                        module = module + '.py'
+		print "[" + str(modules_current) + "/" + str(len(modules)) + "]",
+                print "Fetching " + module + '...',
+		sys.stdout.flush()
+
+		if os.path.isfile(kiwi_local_modules_dir + module):
+			print 'Exists'
+			modules_fetched += 1
+		else:
+                	try:
+                        	get_file(kiwi_repo_raw + kiwi_repo_modules_dir + module, kiwi_local_modules_dir + module)
+				print 'Done'
+				modules_fetched += 1
+                	except requests.exceptions.HTTPError as e:
+                        	print 'Error: {}'.format(e)
+				if fatal:
+					exit()
+                	except (IOError, OSError) as e:
+                        	report(e, 'could not write to file', fatal)
+	return modules_fetched
+
 def report(e, description=None, fatal=False):
 	print 'Error:',
 	
@@ -33,7 +71,6 @@ def pull():
         pass
 
 def get_file(url, dest):
-	# try:
 	response = requests.get(url)
 	if response.status_code is not 200:
 		raise requests.exceptions.HTTPError('file not found')
@@ -57,34 +94,38 @@ def main():
 	args = parser.parse_args()
 
 	if args.list_modules:
-		print '\n'.join(get_modules())
+		print '\n'.join(get_module_list())
 
 	if args.get_modules:
 		if 'all' in args.get_modules:
-			if len(args.get_modules) > 1:
-				print "Syntax Error: can't have 'all' argument with other modules listed."
-				print "Possible solutions:"
-				print "\t* kiwi --get-modules all"
-				print "\t* kiwi --get-modules " + ' '.join([module for module in args.get_modules if module != 'all'])
-			else:
-				args.get_modules = get_modules()
+                	if len(args.get_modules) > 1:
+                        	# print "kiwi: can't have 'all' argument with other modules listed."
+				kiwisay("can't have 'all' argument with other modules listed")
+                        	print "Possible solutions:"
+                        	print "\t* kiwi --get-modules all"
+                        	print "\t* kiwi --get-modules " + ' '.join([module for module in args.get_modules if module != 'all'])
+                	else:
+                        	args.get_modules = get_module_list()
+		modules_fetched = get_modules(args.get_modules)
+		kiwisay('fetched {} out of {} modules'.format(modules_fetched, len(args.get_modules)))
 
-		for module in args.get_modules:
-			if module[-3:] != '.py':
-				module = module + '.py'
-			print "Downloading {}...".format(module)
-
-			try:
-				get_file(kiwi_repo_raw + kiwi_repo_modules_dir + module, kiwi_local_modules_dir + module)
-			except requests.exceptions.HTTPError as e:
-				print 'ERROR: {}'.format(e)
-			except (IOError, OSError) as e:
-				report(e, 'could not write to file')
 	if args.module:
-		# Import module
-        	sys.path.append(kiwi_local_modules_dir)
-        	module = importlib.import_module(args.module) # TODO handle missing module
-        	module.main(args)
+		# Import module (only import kiwi modules)
+		sys.path.append(kiwi_local_modules_dir)
+
+		if not module_exists(args.module):
+			module_as_list = list()
+			module_as_list.append(args.module)
+			get_modules(module_as_list)
+			if not module_exists(args.module):
+				kiwisay("I don't have a module called '{}' :(".format(args.module))
+				exit()
+
+		module = importlib.import_module(args.module)
+		if hasattr(module, 'kiwi_main'):
+			module.main(args)
+		else:
+        		kiwisay('this is not my module (missing kiwi_main())')
 
 if __name__ == "__main__":
         main()
