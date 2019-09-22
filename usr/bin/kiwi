@@ -28,7 +28,7 @@ def get_module_list():
 	return [module['name'] for module in requests.get(kiwi_repo_api + kiwi_repo_modules_dir).json()]
 
 # TODO update as well
-def get_modules(modules, fatal=False):
+def get_modules(modules):
 	modules_fetched = 0
 	modules_current = 0
         for module in modules:
@@ -49,10 +49,8 @@ def get_modules(modules, fatal=False):
 				modules_fetched += 1
                 	except requests.exceptions.HTTPError as e:
                         	print 'Error: {}'.format(e)
-				if fatal:
-					exit()
                 	except (IOError, OSError) as e:
-                        	report(e, 'could not write to file', fatal)
+                        	report(e, 'could not write to file')
 	return modules_fetched
 
 def report(e, description=None, fatal=False):
@@ -65,10 +63,6 @@ def report(e, description=None, fatal=False):
 	
 	if fatal:
 		exit()
-
-# TODO pull file from repo (with auth)
-def pull():
-        pass
 
 def get_file(url, dest):
 	response = requests.get(url)
@@ -110,7 +104,7 @@ def main():
 		kiwisay('fetched {} out of {} modules'.format(modules_fetched, len(args.get_modules)))
 
 	if args.module:
-		# Import module (only import kiwi modules)
+		# Import module
 		sys.path.append(kiwi_local_modules_dir)
 
 		if not module_exists(args.module):
@@ -123,9 +117,13 @@ def main():
 
 		module = importlib.import_module(args.module)
 		if hasattr(module, 'kiwi_main'):
-			module.kiwi_main(args)
+			try:
+				module.kiwi_main(args)
+			except Exception as e:
+				kiwisay("module '{}' crashed with the following exception:".format(args.module))
+				print e
 		else:
-        		kiwisay('this is not my module (missing kiwi_main())')
+        		kiwisay("'{}' is not my module (missing kiwi_main(args) method)".format(args.module))
 
 if __name__ == "__main__":
         main()
