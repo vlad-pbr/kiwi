@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import argparse
 import importlib
+import hashlib
 import requests
 import imp
 import urllib2
@@ -17,6 +18,9 @@ kiwi_repo_raw = "https://raw.githubusercontent.com/isLonerism/kiwi/master/"
 def kiwisay(jibberish):
 	print 'kiwi: {}'.format(jibberish)
 
+def printline():
+	print '-'*50
+
 def module_exists(module):
 	try:
 		imp.find_module(module)
@@ -27,12 +31,15 @@ def module_exists(module):
 def get_module_list():
 	return [module['name'] for module in requests.get(kiwi_repo_api + kiwi_repo_modules_dir).json()]
 
-# TODO update as well
-def get_modules(modules):
-	modules_fetched = 0
+# TODO cache updates, delete cached file on update
+def get_modules(modules, update=False, cache_updates=True):
+	modules_fetched = []
+	modules_update_available = []
 	modules_current = 0
+
         for module in modules:
 		modules_current += 1
+
                 if module[-3:] != '.py':
                         module = module + '.py'
 		print "[" + str(modules_current) + "/" + str(len(modules)) + "]",
@@ -40,18 +47,29 @@ def get_modules(modules):
 		sys.stdout.flush()
 
 		if os.path.isfile(kiwi_local_modules_dir + module):
-			print 'Exists'
-			modules_fetched += 1
+			latest = requests.get(kiwi_repo_raw + kiwi_repo_modules_dir + module).text
+			with open(kiwi_local_modules_dir + module, 'r+') as current:
+				if hashlib.sha256(latest).hexdigest() == hashlib.sha256(current.read()).hexdigest():
+					print 'Up to date'
+				else:
+					if update:
+						current.seek(0)
+						current.truncate(0)
+						current.write(latest)
+						print 'Updated'
+					else:
+						print 'Update available'
+						modules_update_available.append(module[:-3])
 		else:
                 	try:
                         	get_file(kiwi_repo_raw + kiwi_repo_modules_dir + module, kiwi_local_modules_dir + module)
 				print 'Done'
-				modules_fetched += 1
+				modules_fetched.append(module[:-3])
                 	except requests.exceptions.HTTPError as e:
                         	print 'Error: {}'.format(e)
                 	except (IOError, OSError) as e:
                         	report(e, 'could not write to file')
-	return modules_fetched
+	return modules_fetched, modules_update_available
 
 def report(e, description=None, fatal=False):
 	print 'Error:',
@@ -93,15 +111,23 @@ def main():
 	if args.get_modules:
 		if 'all' in args.get_modules:
                 	if len(args.get_modules) > 1:
-                        	# print "kiwi: can't have 'all' argument with other modules listed."
 				kiwisay("can't have 'all' argument with other modules listed")
                         	print "Possible solutions:"
                         	print "\t* kiwi --get-modules all"
                         	print "\t* kiwi --get-modules " + ' '.join([module for module in args.get_modules if module != 'all'])
+				return
                 	else:
                         	args.get_modules = get_module_list()
-		modules_fetched = get_modules(args.get_modules)
-		kiwisay('fetched {} out of {} modules'.format(modules_fetched, len(args.get_modules)))
+		modules_fetched, modules_update_available = get_modules(args.get_modules)
+		kiwisay('fetch results')
+		print '\t* {} new modules fetched'.format(len(modules_fetched))
+		print '\t* {} modules have an available update'.format(len(modules_update_available))
+		print '\t* The rest of the modules are present and up to date'
+
+		if len(modules_update_available) > 0:
+			print 'Update the outdated modules? (y/n): ',
+			if raw_input() == 'y':
+				get_modules(modules_update_available, True)
 
 	if args.module:
 		# Import module
@@ -118,12 +144,19 @@ def main():
 		module = importlib.import_module(args.module)
 		if hasattr(module, 'kiwi_main'):
 			try:
+				print ''
+				kiwisay("running module '{}'".format(args.module))
+				printline()
 				module.kiwi_main(args)
 			except Exception as e:
+				printline()
 				kiwisay("module '{}' crashed with the following exception:".format(args.module))
-				print e
+				print e, '\n'
+				return
 		else:
         		kiwisay("'{}' is not my module (missing kiwi_main(args) method)".format(args.module))
 
+		printline()
+		print ''
 if __name__ == "__main__":
         main()
