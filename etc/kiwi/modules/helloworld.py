@@ -1,5 +1,10 @@
 #!/usr/bin/env python2
+import argparse
+import sys
 
-# TODO parse args for custom greeting
-def kiwi_main(args):
-	print "Hello, world!"
+def kiwi_main():
+	parser = argparse.ArgumentParser(description='Greet anybody!')
+        parser.add_argument('-n', '--name', type=str)
+	args = parser.parse_args()
+	
+	print "Hello, {}!".format(args.name if args.name else 'world')
