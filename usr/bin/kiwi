@@ -18,9 +18,6 @@ kiwi_repo_raw = "https://raw.githubusercontent.com/isLonerism/kiwi/master/"
 def kiwisay(jibberish, newline=True):
 	print 'kiwi: ' + jibberish + ('\n' if newline else ''),
 
-def printline():
-	print '-'*50
-
 def module_exists(module):
 	try:
 		imp.find_module(module)
@@ -31,12 +28,13 @@ def module_exists(module):
 def get_module_list():
 	return [module['name'][:-3] for module in requests.get(kiwi_repo_api + kiwi_repo_modules_dir).json()]
 
-# TODO cache updates, delete cached file on update
 def get_modules(modules, update=False, cache_updates=True, quiet=False):
 	modules_fetched = []
-	modules_update_available = []
+	modules_update = []
+	modules_failed = []
 	modules_current = 0
 
+	# redirect stdout on quiet mode
 	terminal = sys.stdout
 	devnull = open(os.devnull, 'w')
 	if quiet:
@@ -51,55 +49,84 @@ def get_modules(modules, update=False, cache_updates=True, quiet=False):
                 print "Fetching " + module + '...',
 		sys.stdout.flush()
 
-		if os.path.isfile(kiwi_local_modules_dir + module):
-			latest = requests.get(kiwi_repo_raw + kiwi_repo_modules_dir + module).text
-			with open(kiwi_local_modules_dir + module, 'r+') as current:
-				if hashlib.sha256(latest).hexdigest() == hashlib.sha256(current.read()).hexdigest():
-					print 'Up to date'
+		try:
+			# update from cached file
+			if update and os.path.isfile(kiwi_local_modules_dir + module + '.latest'):
+				with open(kiwi_local_modules_dir + module, 'w') as current, open(kiwi_local_modules_dir + module + '.latest', 'r') as cached:
+					current.truncate(0)
+					current.write(cached.read())
+				os.remove(kiwi_local_modules_dir + module + '.latest')
+				print 'Updated'
+
+			# get latest module
+			else:
+				latest = get(kiwi_repo_raw + kiwi_repo_modules_dir + module)
+
+				# update / cache separately if module exists
+				if os.path.isfile(kiwi_local_modules_dir + module):
+					with open(kiwi_local_modules_dir + module, 'r+') as current:
+						if hashlib.sha256(latest).hexdigest() == hashlib.sha256(current.read()).hexdigest():
+							print 'Up to date'
+						else:
+							if update:
+								current.seek(0)
+								current.truncate(0)
+								current.write(latest)
+
+								print 'Updated'
+								modules_fetched.append(module[:-3])
+							else:
+								if cache_updates:
+									with open(kiwi_local_modules_dir + module + '.latest', 'w') as cached:
+										cached.write(latest)
+
+								print 'Update available'
+								modules_update.append(module[:-3])
+
+				# write module
 				else:
-					if update:
-						current.seek(0)
-						current.truncate(0)
-						current.write(latest)
-						print 'Updated'
+					with open(kiwi_local_modules_dir + module, 'w') as module_file:
+						module_file.write(latest)
+
+						print 'Done'
 						modules_fetched.append(module[:-3])
-					else:
-						print 'Update available'
-						modules_update_available.append(module[:-3])
-		else:
-                	try:
-                        	get_file(kiwi_repo_raw + kiwi_repo_modules_dir + module, kiwi_local_modules_dir + module)
-				print 'Done'
-				modules_fetched.append(module[:-3])
-                	except requests.exceptions.HTTPError as e:
-                        	print 'Error: {}'.format(e)
-                	except (IOError, OSError) as e:
-				sys.stdout = terminal
-                        	report(e, 'could not write to file')
+
+		except requests.exceptions.HTTPError as e:
+			report(e, 'download failed')
+			modules_failed.append(module[:-3])
+		except (IOError, OSError) as e:
+			sys.stdout = terminal
+			report(e, 'could not access local file')
+			modules_failed.append(module[:-3])
+			
 	sys.stdout = terminal
-	return modules_fetched, modules_update_available
+	return modules_fetched, modules_update, modules_failed
 
 def report(e, description=None, fatal=False):
 	print 'Error:',
 	
-	if description:
-		print str(description) + " (ERRNO {}: {})".format(e.errno, os.strerror(e.errno))
-	else:
-		print os.strerror(e.errno)
-	
-	if fatal:
-		exit()
+	if type(e) is requests.exceptions.HTTPError:
+		print '{} ({})'.format(description, e)
 
-def get_file(url, dest):
-	response = requests.get(url)
-	if response.status_code is not 200:
-		raise requests.exceptions.HTTPError('file not found')
 	else:
-		with open(dest, 'w') as f:
-			f.write(response.text)
+		if description:
+			print str(description) + " (ERRNO {}: {})".format(e.errno, os.strerror(e.errno))
+		else:
+			print os.strerror(e.errno)
+	
+		if fatal:
+			exit()
+
+def get(url):
+	response = requests.get(url)
+
+	if response.status_code is not 200:
+		raise requests.exceptions.HTTPError('file unreachable or non-existent')
+	else:
+		return response.text
 
 def main():
-	# Create modules directory
+	# create modules directory
 	try:
 		os.makedirs(kiwi_local_modules_dir)
 	except OSError as e:
@@ -122,28 +149,21 @@ def main():
                 module = importlib.import_module(module_name)
                 if hasattr(module, 'kiwi_main'):
                         try:
-                                # print ''
-                                # kiwisay("running module '{}'".format(module_name))
-                                # printline()
                                 module.kiwi_main()
                         except Exception as e:
-                                # printline()
                                 kiwisay("module '{}' crashed with the following exception:".format(module_name), False)
                                 print e
                                 return
                 else:
                         kiwisay("'{}' is not my module (missing kiwi_main() method)".format(module_name))
 
-                # printline()
-                # print ''
-
 	else:
 		# Parse args
 		parser = argparse.ArgumentParser('Kiwi (/ˈkiːwi/ KEE-wee) or kiwis are flightless birds native to New Zealand')
-	        parser.add_argument('-m', '--module', type=str)
-	        parser.add_argument('--list-modules', action="store_true")
-	        parser.add_argument('--get-modules', nargs='*')
-		parser.add_argument('--update-modules', nargs='*')
+		group = parser.add_mutually_exclusive_group()
+	        group.add_argument('-l', '--list-modules', action="store_true")
+	        group.add_argument('-g', '--get-modules', nargs='*')
+		group.add_argument('-u', '--update-modules', nargs='*')
 		args = parser.parse_args()
 	
 		if args.list_modules:
@@ -160,25 +180,31 @@ def main():
 	                        	print "\t* kiwi " + sys.argv[1] + ' ' + ' '.join([module for module in modules if module != 'all'])
 					return
 	                	else:
-	                        	modules = get_module_list()
+					if args.get_modules:
+	                        		modules = get_module_list()
+					else:
+						modules = [module[:-3] for module in os.listdir(kiwi_local_modules_dir) if module[-3:] == '.py']
 	
-			modules_fetched, modules_update_available = get_modules(modules, args.update_modules != None)
+			modules_fetched, modules_update, modules_failed = get_modules(modules, args.update_modules != None)
 
-			if (args.get_modules):
+			if args.get_modules:
 				kiwisay('fetch results')
 				print '\t* {} new modules fetched'.format(len(modules_fetched))
-				print '\t* {} modules have an available update'.format(len(modules_update_available))
-				print '\t* The rest of the modules are present and up to date'
+				print '\t* {} modules could not be fetched'.format(len(modules_failed))
+				print '\t* {} modules have an available update'.format(len(modules_update))
+				if len(modules) != len(modules_fetched) + len(modules_update) + len(modules_failed):
+					print '\t* {} modules are present and up to date'.format(len(modules) - len(modules_fetched) - len(modules_update) - len(modules_failed))
 	
-				if len(modules_update_available) > 0:
+				if len(modules_update) > 0:
 					print 'Update the outdated modules? (y/n): ',
 					if raw_input() == 'y':
-						modules_fetched, modules_update_available = get_modules(modules_update_available, True)
+						modules_fetched, modules_update, modules_failed = get_modules(modules_update, True)
 					else:
 						return
-
-			kiwisay('update results')
-			print '\t* {} modules were updated'.format(len(modules_fetched))
+			if args.update_modules or len(modules_update) > 0:
+				kiwisay('update results')
+				print '\t* {} modules were updated'.format(len(modules_fetched))
+				print '\t* {} modules could not be updated'.format(len(modules_failed))
 	
 if __name__ == "__main__":
         main()
