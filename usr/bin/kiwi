@@ -142,6 +142,7 @@ def main():
                         module_as_list = list()
                         module_as_list.append(module_name)
                         get_modules(module_as_list, quiet=True)
+
                         if not module_exists(module_name):
                                 kiwisay("I don't have a module called '{}' :(".format(module_name))
                                 exit()
@@ -166,9 +167,13 @@ def main():
 		group.add_argument('-u', '--update-modules', nargs='*')
 		args = parser.parse_args()
 	
+		# TODO module description
 		if args.list_modules:
-			print '\n'.join(get_module_list())
-	
+			present = [module[:-3] for module in os.listdir(kiwi_local_modules_dir) if module[-3:] == '.py']
+			
+			for module in get_module_list():
+				print module + ' ({})'.format('present' if module in present else 'available for download')			
+
 		if args.get_modules or args.update_modules:
 			modules = args.get_modules if args.get_modules else args.update_modules
 
@@ -201,6 +206,7 @@ def main():
 						modules_fetched, modules_update, modules_failed = get_modules(modules_update, True)
 					else:
 						return
+
 			if args.update_modules or len(modules_update) > 0:
 				kiwisay('update results')
 				print '\t* {} modules were updated'.format(len(modules_fetched))
