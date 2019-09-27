@@ -31,7 +31,6 @@ def write(log, topic):
 			exit()
 
 	open_mode = 'a'
-
 	if not os.path.isfile(journal_journals_dir + topic):
 		print "topic '{}' does not exist. Create? (y/n)".format(topic),
 		if raw_input() == 'y':
@@ -82,6 +81,4 @@ def kiwi_main():
 			if args.file:
 				log = read(args.file)
 
-			# print format_log(log)
-			
 			write(log, args.topic)

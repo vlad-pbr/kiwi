@@ -9,11 +9,14 @@ import urllib2
 import sys
 import os
 import errno
+import traceback
+from datetime import datetime
 
 kiwi_local_modules_dir = "/etc/kiwi/modules/"
 kiwi_repo_modules_dir = "etc/kiwi/modules/"
 kiwi_repo_api = "https://api.github.com/repos/isLonerism/kiwi/contents/"
 kiwi_repo_raw = "https://raw.githubusercontent.com/isLonerism/kiwi/master/"
+kiwi_home_dir = os.path.expanduser("~") + '/.kiwi/'
 
 def kiwisay(jibberish, newline=True):
 	print 'kiwi: ' + jibberish + ('\n' if newline else ''),
@@ -125,6 +128,27 @@ def get(url):
 	else:
 		return response.text
 
+def write_crashlog(dest, exception_type, exception, exception_traceback):
+	try:
+		os.makedirs(kiwi_home_dir)
+        except Exception as e:
+                if e.errno is not errno.EEXIST:
+	                report(e, 'could not create home directory {}'.format(kiwi_home_dir))
+
+        open_mode = 'w'
+        if os.path.isfile(dest):
+	        open_mode = 'a'
+
+        try:
+	        with open(dest, open_mode) as crash_log:
+	                crash_log.write(datetime.now().strftime("%d/%m/%Y %H:%M:%S") + '\n')
+                        crash_log.write(''.join(traceback.format_tb(exception_traceback)))
+			crash_log.write('{}: {}'.format(exception_type.__name__, exception))
+                        crash_log.write('\n'*2)
+                        kiwisay('detailed crash log can be found at {}'.format(dest))
+        except Exception as e:
+	        print 'Error: could not write crash log ({})'.format(e)
+
 def main():
 	# create modules directory
 	try:
@@ -151,10 +175,10 @@ def main():
                 if hasattr(module, 'kiwi_main'):
                         try:
                                 module.kiwi_main()
-                        except Exception as e:
-                                kiwisay("module '{}' crashed with the following exception:".format(module_name), False)
-                                print e
-                                return
+                        except Exception:
+				ex_type, module_exception, module_traceback = sys.exc_info()
+                                kiwisay("module '{}' crashed with the following exception: {}".format(module_name, module_exception))
+                                write_crashlog(kiwi_home_dir + module_name + '/crash.log', ex_type, module_exception, module_traceback)
                 else:
                         kiwisay("'{}' is not my module (missing kiwi_main() method)".format(module_name))
 
