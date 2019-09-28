@@ -129,11 +129,12 @@ def get(url):
 		return response.text
 
 def write_crashlog(dest, exception_type, exception, exception_traceback):
-	try:
-		os.makedirs(kiwi_home_dir)
-        except Exception as e:
-                if e.errno is not errno.EEXIST:
-	                report(e, 'could not create home directory {}'.format(kiwi_home_dir))
+	if '/' in dest:
+		try:
+			os.makedirs('/'.join(dest.split('/')[:-1]))
+        	except Exception as e:
+        	        if e.errno is not errno.EEXIST:
+	        	        report(e, 'could not create directory {}'.format('/'.join(dest.split('/')[:-1])))
 
         open_mode = 'w'
         if os.path.isfile(dest):
