@@ -29,7 +29,7 @@ def module_exists(module):
 	return True
 
 def get_module_list():
-	return [module['name'][:-3] for module in requests.get(kiwi_repo_api + kiwi_repo_modules_dir).json()]
+	return [module['name'][:-3] for module in requests.get(kiwi_repo_api + kiwi_repo_modules_dir).json() if module['name'][-3:] == '.py']
 
 def get_modules(modules, update=False, cache_updates=True, quiet=False):
 	modules_fetched = []
@@ -134,7 +134,7 @@ def write_crashlog(dest, exception_type, exception, exception_traceback):
 			os.makedirs('/'.join(dest.split('/')[:-1]))
         	except Exception as e:
         	        if e.errno is not errno.EEXIST:
-	        	        report(e, 'could not create directory {}'.format('/'.join(dest.split('/')[:-1])))
+	        	        report(e, 'could not create directory {}'.format('/'.join(dest.split('/')[:-1])), True)
 
         open_mode = 'w'
         if os.path.isfile(dest):
@@ -192,12 +192,30 @@ def main():
 		group.add_argument('-u', '--update-modules', nargs='*')
 		args = parser.parse_args()
 	
-		# TODO module description
 		if args.list_modules:
-			present = [module[:-3] for module in os.listdir(kiwi_local_modules_dir) if module[-3:] == '.py']
+			installed = [module[:-3] for module in os.listdir(kiwi_local_modules_dir) if module[-3:] == '.py']
 			
 			for module in get_module_list():
-				print module + ' ({})'.format('present' if module in present else 'available for download')			
+				print '[{}] {}:'.format('x' if module in installed else ' ', module),
+
+				try:
+					description = '[missing description]'
+					module_lines = None
+
+					if module in installed:
+						with open(kiwi_local_modules_dir + module + '.py') as module_file:
+							module_lines = module_file.readlines()
+					else:
+						module_lines = get(kiwi_repo_raw + kiwi_repo_modules_dir + module + '.py').split('\n')
+					
+					for line in module_lines:
+						if line[:10] == '#kiwidesc=':
+							description = line[10:]
+							break
+
+					print description.rstrip('\n')
+				except Exception as e:
+					report(e)
 
 		if args.get_modules or args.update_modules:
 			modules = args.get_modules if args.get_modules else args.update_modules

@@ -1,4 +1,5 @@
 #!/usr/bin/env python2
+#kiwidesc=greet anybody!
 import argparse
 import sys
 

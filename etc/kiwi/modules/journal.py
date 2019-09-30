@@ -1,4 +1,5 @@
 #!/usr/bin/env python2
+#kiwidesc=log your thoughts and progress on different topics
 import argparse
 import os
 import errno
@@ -18,10 +19,7 @@ def read(path):
 		print 'could not read from {}: {}'.format(path, e)
 		exit()
 
-# TODO commit journal update
-def commit():
-	pass
-
+# TODO use module
 def write(log, topic):
 	try:
                 os.makedirs(journal_journals_dir)
@@ -48,9 +46,9 @@ def write(log, topic):
 
 def format_log(log):
 	out = '-'*50 + '\n'
-	out = out + get_timestamp() + '\n'
-	out = out + '-'*50 + '\n'
-	out = out + log.rstrip('\n') + '\n'*3
+	out += get_timestamp() + '\n'
+	out += '-'*50 + '\n'
+	out += log.rstrip('\n') + '\n'*3
 	
 	return out
 
@@ -58,6 +56,7 @@ def kiwi_main():
         parser = argparse.ArgumentParser(description='log your progress on different topics')
 	parser.add_argument('-l', '--log', const='', nargs='?', type=str)
 	parser.add_argument('-t', '--topic', type=str)
+	parser.add_argument('-L', '--list-topics', action='store_true')
 	parser.add_argument('-f', '--file', type=str)
 
         args = parser.parse_args()
