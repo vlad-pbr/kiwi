@@ -1,4 +1,5 @@
 #!/usr/bin/env python2
+
 #kiwidesc=work with common file storage services to store and retrieve files
 import argparse
 import requests
@@ -93,15 +94,16 @@ def parse_source(filepath):
  
 		# split each line by space to get keyvalue strings
 		while line:
-			args = argparse.Namespace()
-			kvs = line.split(' ')
+			if line[0] != '#':
+				args = argparse.Namespace()
+				kvs = line.split(' ')
 
-			# split each element by '=' to separate key and value
-			for kv in kvs:
-				kv = kv.split('=')
-				args.__setattr__(kv[0], kv[1].strip())
+				# split each element by '=' to separate key and value
+				for kv in kvs:
+					kv = kv.split('=')
+					args.__setattr__(kv[0], kv[1].strip())
 
-			args_list.append(args)
+				args_list.append(args)
 			line = sources.readline()
 
 	return args_list
@@ -123,6 +125,7 @@ def kiwi_main():
 	# source parser specific arguments
 	source_parser.add_argument('-S', '--source-file', help='destination to a file of sources', type=str, required=True)
 	source_parser.add_argument('-n', '--filename', help='filename within the destination folder', required=True)
+	# source_parser.add_argument('-r', '--retrieve', help='retrieve content instead of storing', action='store_true')
 
 	for name, subparser in subparsers.choices.items():
 
@@ -133,6 +136,9 @@ def kiwi_main():
 			content_group = subparser.add_mutually_exclusive_group(required=True)
         		content_group.add_argument('-c', '--content', help='file content', type=str)
         		content_group.add_argument('-f', '--file', help='file contents of which should be stored', type=str)
+
+			if name == 'source':
+				content_group.add_argument('-r', '--retrieve', help='retrieve content instead of storing', action='store_true')
 
 			# optional arguments
 			subparser.add_argument('-m', '--message', help='commit message (when using Git)', type=str)
@@ -176,17 +182,22 @@ def kiwi_main():
 						else:
 							arg.__setattr__(attribute.dest, None)
 
-				# read from file if filepath is given
-				if args.file:
-                        	        with open(args.file, 'r') as content_file:
-                                        	arg.content = content_file.read()
-				else:
-					arg.content = args.content
-
 				# set full destination
-				arg.destination = os.path.join(arg.destination, args.filename)
+                                arg.destination = os.path.join(arg.destination, args.filename)
 
-				store(arg)
+				if args.retrieve:
+					print retrieve(arg),
+					return
+				else:
+
+					# read from file if filepath is given
+					if args.file:
+                        	        	with open(args.file, 'r') as content_file:
+                                        		arg.content = content_file.read()
+					else:
+						arg.content = args.content
+
+					store(arg)
 			else:
 				print missing
 
@@ -213,7 +224,7 @@ def kiwi_main():
 				data = retrieve(args)
 
 				if not args.hide:
-                                	print data
+                                	print data,
 
 				# store data in a file
                         	if args.file:
