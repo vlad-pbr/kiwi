@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
-
 #kiwidesc=log your thoughts and progress on different topics
+
 import argparse
 import os
 import errno
@@ -86,7 +86,7 @@ def kiwi_main():
 
 	# print journal
 	elif not args.log and not args.file:
-		print read(journal_journals_dir + args.topic),
+		print read(args.topic),
 
 	# write to journal
 	else:

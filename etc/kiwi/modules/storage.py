@@ -63,6 +63,8 @@ def github_retrieve(args):
 	return requests.get('https://{}:{}@raw.githubusercontent.com/{}/{}/master/{}'.format( \
 		args.auth_user, args.auth_pass, args.repo_owner, args.repo, args.destination)).text
 
+
+
 # ---------------------------------------------------------------------------------------------------
 
 def store(args):
@@ -125,7 +127,6 @@ def kiwi_main():
 	# source parser specific arguments
 	source_parser.add_argument('-S', '--source-file', help='destination to a file of sources', type=str, required=True)
 	source_parser.add_argument('-n', '--filename', help='filename within the destination folder', required=True)
-	# source_parser.add_argument('-r', '--retrieve', help='retrieve content instead of storing', action='store_true')
 
 	for name, subparser in subparsers.choices.items():
 
