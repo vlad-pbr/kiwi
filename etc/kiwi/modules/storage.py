@@ -9,7 +9,7 @@ import os
 
 service_args = {
 	'file': [],
-	'github': ['repo', 'repo_owner', 'auth_user', 'auth_pass']
+	'github': ['repo', 'repo_owner', 'auth_user', 'auth_token']
 }
 
 # ---------------------------------------------------------------------------------------------------
@@ -27,7 +27,7 @@ def file_retrieve(args):
 def github_store(args):
 	# get remote file
 	response = requests.get('https://{}:{}@api.github.com/repos/{}/{}/contents/{}'.format( \
-                args.auth_user, args.auth_pass, args.repo_owner, args.repo, args.destination)).json()
+                args.auth_user, args.auth_token, args.repo_owner, args.repo, args.destination)).json()
 
 	# write headers and data
 	headers = {'Content-type': 'application/json'}
@@ -51,7 +51,7 @@ def github_store(args):
 
 	# update/create a file
 	response = requests.put('https://{}:{}@api.github.com/repos/{}/{}/contents/{}'.format( \
-		args.auth_user, args.auth_pass, args.repo_owner, args.repo, args.destination), data=json.dumps(commit_json), headers=headers).json()
+		args.auth_user, args.auth_token, args.repo_owner, args.repo, args.destination), data=json.dumps(commit_json), headers=headers).json()
 
 	# message is received if commit failed
 	if 'message' in response:
@@ -61,7 +61,7 @@ def github_store(args):
 
 def github_retrieve(args):
 	return requests.get('https://{}:{}@raw.githubusercontent.com/{}/{}/master/{}'.format( \
-		args.auth_user, args.auth_pass, args.repo_owner, args.repo, args.destination)).text
+		args.auth_user, args.auth_token, args.repo_owner, args.repo, args.destination)).text
 
 
 
@@ -158,6 +158,7 @@ def kiwi_main():
 			subparser.add_argument('-o', '--repo-owner', help='repository owner (when using Git)', type=str)
 			subparser.add_argument('-u', '--auth-user', help='authentication username', type=str)
 			subparser.add_argument('-p', '--auth-pass', help='authentication password', type=str)
+			subparser.add_argument('-t', '--auth-token', help='authentication token', type=str)
 
 	args = parser.parse_args()
 
