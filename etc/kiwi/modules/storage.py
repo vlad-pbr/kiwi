@@ -24,6 +24,9 @@ def file_retrieve(args):
 	with open(args.destination, 'r') as destination_file:
 		return destination_file.read()
 
+def file_list(args):
+	return '\n'.join(os.listdir(args.destination))
+
 def github_store(args):
 	# get remote file
 	response = requests.get('https://{}:{}@api.github.com/repos/{}/{}/contents/{}'.format( \
@@ -63,6 +66,11 @@ def github_retrieve(args):
 	return requests.get('https://{}:{}@raw.githubusercontent.com/{}/{}/master/{}'.format( \
 		args.auth_user, args.auth_token, args.repo_owner, args.repo, args.destination)).text
 
+def github_list(args):
+	item_list = response = requests.get('https://{}:{}@api.github.com/repos/{}/{}/contents/{}'.format( \
+                args.auth_user, args.auth_token, args.repo_owner, args.repo, args.destination)).json()
+
+	return '\n'.join([item['name'] for item in item_list if item['type'] == 'file'])
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -78,6 +86,9 @@ def store(args):
 
 def retrieve(args):
 	return globals()[args.service + '_retrieve'](args)
+
+def list_items(args):
+	return globals()[args.service + '_list'](args)
 
 def missing_args(args, service):
 	if service in list(service_args):
@@ -126,7 +137,7 @@ def kiwi_main():
 
 	# source parser specific arguments
 	source_parser.add_argument('-S', '--source-file', help='destination to a file of sources', type=str, required=True)
-	source_parser.add_argument('-n', '--filename', help='filename within the destination folder', required=True)
+	source_parser.add_argument('-n', '--filename', help='filename within the destination folder', required=False)
 
 	for name, subparser in subparsers.choices.items():
 
@@ -140,6 +151,7 @@ def kiwi_main():
 
 			if name == 'source':
 				content_group.add_argument('-r', '--retrieve', help='retrieve content instead of storing', action='store_true')
+				content_group.add_argument('-l', '--list', help='list all file names in a given directory', action='store_true')
 
 			# optional arguments
 			subparser.add_argument('-m', '--message', help='commit message (when using Git)', type=str)
@@ -185,10 +197,14 @@ def kiwi_main():
 							arg.__setattr__(attribute.dest, None)
 
 				# set full destination
-                                arg.destination = os.path.join(arg.destination, args.filename)
+				if args.filename:
+                                	arg.destination = os.path.join(arg.destination, args.filename)
 
 				if args.retrieve:
 					print retrieve(arg),
+					return
+				elif args.list:
+					print list_items(arg),
 					return
 				else:
 

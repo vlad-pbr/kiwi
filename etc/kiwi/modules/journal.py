@@ -14,9 +14,11 @@ journal_journals_dir = journal_home_dir + 'journals/'
 def get_timestamp():
 	return datetime.now().strftime("%B %d, %Y at %H:%M")
 
+def command(cmd):
+	return Popen(shlex.split(cmd), stdout=PIPE).communicate()[0]
+
 def module_installed(target_module):
-	cmd = 'kiwi --list-modules'
-        stdout = Popen(shlex.split(cmd), stdout=PIPE).communicate()[0]
+        stdout = command('kiwi --list-modules')
 
 	for module in stdout.split('\n'):
                 if module[4:11] == target_module:
@@ -25,10 +27,12 @@ def module_installed(target_module):
 	return False
 
 def read(topic):
-	cmd = 'kiwi storage source -r -S {} -n {}'.format(\
-		journal_home_dir + 'sources', topic)
+	return command('kiwi storage source -r -S {} -n {}'.format(\
+                journal_home_dir + 'sources', topic))
 
-	return Popen(shlex.split(cmd), stdout=PIPE).communicate()[0]
+def get_topics():
+	return command('kiwi storage source -l -S {}'.format(\
+                journal_home_dir + 'sources'))
 
 def write(log, topic):
 
@@ -46,10 +50,8 @@ def write(log, topic):
 		log = journal + format_log(log)
 
 	# use storage module to store the journal
-	cmd = 'kiwi storage source -S {} -m "{}" -n {} -c "{}"'.format(\
-		journal_home_dir + 'sources', get_timestamp(), topic, log)
-
-	stdout = Popen(shlex.split(cmd), stdout=PIPE).communicate()[0]
+	stdout = command('kiwi storage source -S {} -m "{}" -n {} -c "{}"'.format(\
+                journal_home_dir + 'sources', get_timestamp(), topic, log))
 	print stdout.rstrip(),
 
 def format_log(log):
@@ -82,7 +84,7 @@ def kiwi_main():
 
 	# list journals
 	if args.list_topics:
-		pass # TODO from first source of source file
+		print get_topics(),
 
 	# print journal
 	elif not args.log and not args.file:
