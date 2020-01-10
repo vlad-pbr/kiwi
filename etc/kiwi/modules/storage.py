@@ -67,7 +67,7 @@ def github_retrieve(args):
 		args.auth_user, args.auth_token, args.repo_owner, args.repo, args.destination)).text
 
 def github_list(args):
-	item_list = response = requests.get('https://{}:{}@api.github.com/repos/{}/{}/contents/{}'.format( \
+	item_list = requests.get('https://{}:{}@api.github.com/repos/{}/{}/contents/{}'.format( \
                 args.auth_user, args.auth_token, args.repo_owner, args.repo, args.destination)).json()
 
 	return '\n'.join([item['name'] for item in item_list if item['type'] == 'file'])
