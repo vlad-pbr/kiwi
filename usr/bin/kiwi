@@ -10,6 +10,7 @@ import sys
 import os
 import errno
 import traceback
+import tempfile
 from datetime import datetime
 
 kiwi_local_modules_dir = "/etc/kiwi/modules/"
@@ -190,6 +191,7 @@ def main():
 	        group.add_argument('-l', '--list-modules', action="store_true")
 	        group.add_argument('-g', '--get-modules', nargs='*')
 		group.add_argument('-u', '--update-modules', nargs='*')
+		group.add_argument('-U', '--self-update', action='store_true')
 		args = parser.parse_args()
 	
 		if args.list_modules:
@@ -255,5 +257,25 @@ def main():
 				print '\t* {} modules were updated'.format(len(modules_fetched))
 				print '\t* {} modules could not be updated'.format(len(modules_failed))
 	
+		if args.self_update:
+			if os.geteuid() != 0:
+				kiwisay('you must run this command with root permissions')
+				return
+
+			latest_kiwi = get(kiwi_repo_raw + 'usr/bin/kiwi')
+			with open(os.path.abspath(__file__), 'r') as current_kiwi:
+                        	if hashlib.sha256(latest_kiwi).hexdigest() == hashlib.sha256(current_kiwi.read()).hexdigest():
+					kiwisay("I'm up to date")
+				else:
+					kiwisay("I have an available update. Proceed? (y/n)", False),
+					if raw_input() == 'y':
+						kiwisay("Updating...", False)
+						sys.stdout.flush()
+						current_kiwi.seek(0)
+                                                current_kiwi.truncate(0)
+                                                current_kiwi.write(latest_kiwi)
+						print "Done!"
+					
+
 if __name__ == "__main__":
         main()
