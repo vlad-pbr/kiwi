@@ -258,7 +258,7 @@ def main():
 	
 		if args.self_update:
 			if os.geteuid() != 0:
-				kiwisay('you must run this command with root permissions')
+				kiwisay('run me with root permissions')
 				return
 
 			latest_kiwi = get(kiwi_repo_raw + 'usr/bin/kiwi')
