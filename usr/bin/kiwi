@@ -10,6 +10,7 @@ import sys
 import os
 import errno
 import traceback
+import re
 from datetime import datetime
 
 kiwi_local_modules_dir = "/etc/kiwi/modules/"
@@ -210,8 +211,9 @@ def main():
 						module_lines = get(kiwi_repo_raw + kiwi_repo_modules_dir + module + '.py').split('\n')
 					
 					for line in module_lines:
-						if line[:10] == '#kiwidesc=':
-							description = line[10:]
+						match = re.match('kiwi_description\s*=\s*(.*)$', line)
+						if match:
+							description = match.groups()[0].strip('\'\"')
 							break
 
 					print description.rstrip('\n')

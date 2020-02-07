@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
-#kiwidesc=open a new browser window with a lofi music stream
+kiwi_description = 'Open a new browser window with a lofi music stream'
+
 import distutils.spawn
 import subprocess
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python2
-#kiwidesc=log your thoughts and progress on different topics
+kiwi_description = 'Log your thoughts and progress on different topics'
 
 import argparse
 import os
@@ -62,7 +62,7 @@ def format_log(log):
 	return out
 
 def kiwi_main():
-        parser = argparse.ArgumentParser(description='log your progress on different topics')
+        parser = argparse.ArgumentParser(kiwi_description)
 
 	# log content options
 	content_group = parser.add_mutually_exclusive_group()

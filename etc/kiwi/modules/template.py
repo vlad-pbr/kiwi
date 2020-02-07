@@ -1,5 +1,5 @@
 #!/usr/bin/env python2
-#kiwidesc=module template
+kiwi_description = 'Module template'
 
 def kiwi_main():
 	pass
