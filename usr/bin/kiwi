@@ -10,7 +10,6 @@ import sys
 import os
 import errno
 import traceback
-import tempfile
 from datetime import datetime
 
 kiwi_local_modules_dir = "/etc/kiwi/modules/"
@@ -259,11 +258,11 @@ def main():
 	
 		if args.self_update:
 			if os.geteuid() != 0:
-				kiwisay('you must run this command with root permissions')
+				kiwisay('run me with root permissions')
 				return
 
 			latest_kiwi = get(kiwi_repo_raw + 'usr/bin/kiwi')
-			with open(os.path.abspath(__file__), 'r') as current_kiwi:
+			with open(os.path.abspath(__file__), 'r+') as current_kiwi:
                         	if hashlib.sha256(latest_kiwi).hexdigest() == hashlib.sha256(current_kiwi.read()).hexdigest():
 					kiwisay("I'm up to date")
 				else:
