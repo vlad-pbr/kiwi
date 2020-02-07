@@ -1,30 +1,19 @@
 #!/usr/bin/env python2
 kiwi_description = 'Log your thoughts and progress on different topics'
+kiwi_dependencies = ['storage']
 
 import argparse
-import os
-import errno
 from datetime import datetime
 from subprocess import Popen, PIPE
 import shlex
 
-journal_home_dir = os.path.expanduser("~") + '/.kiwi/journal/'
-journal_journals_dir = journal_home_dir + 'journals/'
+journal_home_dir = None
 
 def get_timestamp():
 	return datetime.now().strftime("%B %d, %Y at %H:%M")
 
 def command(cmd):
 	return Popen(shlex.split(cmd), stdout=PIPE).communicate()[0]
-
-def module_installed(target_module):
-        stdout = command('kiwi --list-modules')
-
-	for module in stdout.split('\n'):
-                if module[4:11] == target_module:
-                        if module[1] == 'x':
-				return True
-	return False
 
 def read(topic):
 	return command('kiwi storage source -r -S {} -n {}'.format(\
@@ -61,8 +50,11 @@ def format_log(log):
 	out += log.rstrip('\n') + '\n'*3
 	return out
 
-def kiwi_main():
-        parser = argparse.ArgumentParser(kiwi_description)
+def kiwi_main(kiwi):
+	global journal_home_dir
+	journal_home_dir = kiwi['module_home']
+
+	parser = argparse.ArgumentParser(kiwi_description)
 
 	# log content options
 	content_group = parser.add_mutually_exclusive_group()
@@ -73,14 +65,8 @@ def kiwi_main():
 	action_group = parser.add_mutually_exclusive_group(required=True)
 	action_group.add_argument('-t', '--topic', help='name of the topic', type=str)
 	action_group.add_argument('-L', '--list-topics', help='show existing topics', action='store_true')
-
-        args = parser.parse_args()
-
-	# make sure the storage module is installed
-	if not module_installed('storage'):
-		print "Error: kiwi 'storage' module not installed"
-                print "Tip: use 'sudo kiwi -g storage' to install the module"
-		exit()
+	
+	args = parser.parse_args()
 
 	# list journals
 	if args.list_topics:

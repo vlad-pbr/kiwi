@@ -7,10 +7,11 @@ import sys
 import os
 import errno
 import traceback
-from re import match
+import re
 from importlib import import_module
 from hashlib import sha256
 from datetime import datetime
+from inspect import getargspec
 
 kiwi_local_modules_dir = "/etc/kiwi/modules/"
 kiwi_repo_modules_dir = "etc/kiwi/modules/"
@@ -25,6 +26,28 @@ def get_installed_module_list():
 
 def get_remote_module_list():
 	return [module['name'][:-3] for module in requests.get(kiwi_repo_api + kiwi_repo_modules_dir).json() if module['name'][-3:] == '.py']
+
+def get_module_description(module):
+	try:
+		module_lines = None
+
+		# read the local module if present, remote if not present
+		if module in get_installed_module_list():
+			with open(kiwi_local_modules_dir + module + '.py') as module_file:
+				module_lines = module_file.readlines()
+		else:
+			module_lines = get(kiwi_repo_raw + kiwi_repo_modules_dir + module + '.py').split('\n')
+
+		# search for description tag
+		for line in module_lines:
+			match = re.match('kiwi_description\s*=\s*(.*)$', line)
+			if match:
+				return match.groups()[0].strip("\'\"")
+				
+		return '[missing description]'
+
+	except Exception as e:
+		report(e)
 
 def fetch_modules(modules, update=False, cache_updates=True, quiet=False):
 	modules_fetched = []
@@ -90,11 +113,9 @@ def fetch_modules(modules, update=False, cache_updates=True, quiet=False):
 					modules_fetched.append(module[:-3])
 
 		except requests.exceptions.HTTPError as e:
-			sys.stdout = terminal
 			report(e, 'download failed')
 			modules_failed.append(module[:-3])
 		except (IOError, OSError) as e:
-			sys.stdout = terminal
 			report(e, 'could not access local file')
 			modules_failed.append(module[:-3])
 			
@@ -174,25 +195,46 @@ def main():
 		sys.argv.pop(0)
 		sys.path.append(kiwi_local_modules_dir)
 		
-		# if module is not installed - try to quietly fetch it
+		# if module is not installed - see if it exists on remote
 		if module_name not in get_installed_module_list():
-			module_as_list = list()
-			module_as_list.append(module_name)
-			fetch_modules(module_as_list, quiet=True)
-			
-			# exit if module does not exist on remote as well
-			if module_name not in get_installed_module_list():
+			if module_name not in get_remote_module_list():
 				kiwisay("I don't have a module called '{}' :(".format(module_name))
-				exit()
+				return
+			
+			# fetch the module
+			else:
+				module_as_list = list()
+				module_as_list.append(module_name)
+				_, _, modules_failed = fetch_modules(module_as_list)
+				if modules_failed:
+					return
 				
 		# import and validate the module
 		module = import_module(module_name)
 		if hasattr(module, 'kiwi_main'):
 			ensure_directory(kiwi_home_dir + module_name)
 			
+			# resolve dependencies
+			if hasattr(module, 'kiwi_dependencies'):
+				dependencies = set(module.kiwi_dependencies) - set(get_installed_module_list())
+				if dependencies:
+					_, _, modules_failed = fetch_modules(dependencies, quiet=False)
+					if modules_failed:
+						kiwisay('could not resolve the following dependencies: {}'.format(', '.join(modules_failed)))
+						print "Possible solutions:"
+						print "\t* sudo kiwi -g {}".format(' '.join(modules_failed))
+						return
+
+			# prepare kiwi helper functions and variables
+			kiwi = {
+				'report': report,
+				'installed_module_list': get_installed_module_list(),
+				'module_home': kiwi_home_dir + module_name + '/'
+			}
+
 			# run the module and log any exceptions coming from it
 			try:
-				module.kiwi_main()
+				module.kiwi_main() if len(getargspec(module.kiwi_main).args) == 0 else module.kiwi_main(kiwi)
 			except Exception:
 				ex_type, module_exception, module_traceback = sys.exc_info()
 				kiwisay("module '{}' crashed with the following exception: {}".format(module_name, module_exception))
@@ -216,29 +258,7 @@ def main():
 			
 			# compare with remote modules and mark as installed
 			for module in get_remote_module_list():
-				print '[{}] {}:'.format('x' if module in installed else ' ', module),
-				
-				try:
-					description = '[missing description]'
-					module_lines = None
-
-					# read the local module if present, remote if not present
-					if module in installed:
-						with open(kiwi_local_modules_dir + module + '.py') as module_file:
-							module_lines = module_file.readlines()
-					else:
-						module_lines = get(kiwi_repo_raw + kiwi_repo_modules_dir + module + '.py').split('\n')
-					
-					# search for description string
-					for line in module_lines:
-						match = re.match('kiwi_description\s*=\s*(.*)$', line)
-						if match:
-							description = match.groups()[0].strip('\'\"')
-							break
-					print description.rstrip('\n')
-
-				except Exception as e:
-					report(e)
+				print '[{}] {}: {}'.format('x' if module in installed else ' ', module, get_module_description(module))
 
 		# fetching and updating modules have the same logic behind them
 		if args.get_modules or args.update_modules:
