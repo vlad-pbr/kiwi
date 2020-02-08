@@ -138,7 +138,8 @@ def report(e, description=None, fatal=False):
 
 	else:
 		if description:
-			print str(description) + " (ERRNO {}: {})".format(e.errno, os.strerror(e.errno))
+			print str(description),
+			print "(ERRNO {}: {})".format(e.errno, os.strerror(e.errno)) if hasattr(e, 'errno') else ''
 		else:
 			print os.strerror(e.errno)
 	
@@ -162,17 +163,17 @@ def parse_config(path):
 	args = {}
 
 	with open(path, 'r') as args_file:
-		arg = args_file.readline().strip()
+		for index, arg in enumerate(args_file):
+			arg = arg.strip()
+			try:
+				# ignore lines that are empty or commented out
+				if arg and arg[0] != '#':
+					kv = arg.split('=', 1)
+					args[kv[0].strip()] = kv[1].strip()
 
-		while arg:
-			# ignore lines that are commented out
-			if arg[0] != '#':
-				# each line has exactly one key-value pair
-				kv = arg.split('=', 1)
-				args[kv[0].strip()] = kv[1].strip()
-
-			# read next argument
-			arg = args_file.readline().strip()
+			# at this point any error is a syntax error
+			except Exception as e:
+				report(e, '{}: syntax error on line {}: "{}"'.format(path, index + 1, arg), True)
 
 	return args
 
