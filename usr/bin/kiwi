@@ -158,6 +158,24 @@ def overwrite(file_, data):
 	file_.truncate(0)
 	file_.write(data)
 
+def parse_config(path):
+	args = {}
+
+	with open(path, 'r') as args_file:
+		arg = args_file.readline().strip()
+
+		while arg:
+			# ignore lines that are commented out
+			if arg[0] != '#':
+				# each line has exactly one key-value pair
+				kv = arg.split('=', 1)
+				args[kv[0].strip()] = kv[1].strip()
+
+			# read next argument
+			arg = args_file.readline().strip()
+
+	return args
+
 def write_crashlog(dest, exception_type, exception, exception_traceback):
 	if '/' in dest:
 		ensure_directory(dest)
@@ -228,7 +246,9 @@ def main():
 			# prepare kiwi helper functions and variables
 			kiwi = {
 				'report': report,
+				'parse_config': parse_config,
 				'installed_module_list': get_installed_module_list(),
+				'module_name': module_name,
 				'module_home': kiwi_home_dir + module_name + '/'
 			}
 
