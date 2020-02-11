@@ -7,8 +7,7 @@ import sys
 import os
 import errno
 import traceback
-from imp import load_source, new_module, reload
-from tempfile import mkstemp
+from imp import load_source, new_module
 from importlib import import_module
 from hashlib import sha256
 from datetime import datetime
@@ -37,7 +36,7 @@ def get_module_description(module):
 			module_object = new_module(module)
 			exec get(kiwi_repo_raw + kiwi_repo_modules_dir + module + '.py') in module_object.__dict__
 
-		return module_object.kiwi_description if hasattr(module_object, 'kiwi_description') else '[missing description]'
+		return module_object.kiwi_main.__doc__ if hasattr(module_object, 'kiwi_main') and module_object.kiwi_main.__doc__ else '[missing description]'
 
 	except Exception as e:
 		report(e)

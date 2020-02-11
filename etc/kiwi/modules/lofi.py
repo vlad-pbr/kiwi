@@ -1,5 +1,4 @@
 #!/usr/bin/env python2
-kiwi_description = 'Open a new browser window with a lofi music stream'
 
 from subprocess import call
 from distutils.spawn import find_executable
@@ -26,6 +25,9 @@ def get_url(kiwi):
 	return 'https://www.youtube.com/watch?v=' + videoId
 
 def kiwi_main(kiwi):
+
+	"""Open a new browser window with a lofi music stream"""
+
 	if find_executable("explorer.exe") is not None:
 		call(["explorer.exe", get_url(kiwi) + "&\""])
 	elif find_executable("xdg-open") is not None:

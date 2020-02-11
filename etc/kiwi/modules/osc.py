@@ -1,5 +1,4 @@
 #!/usr/bin/env python2
-kiwi_description = 'Oscillate a wave with given parameters'
 
 import argparse
 import soundfile as sf
@@ -29,7 +28,10 @@ def saw(val):
 	return ((val % (pi * 2)) / pi) - 1
 
 def kiwi_main():
-	parser = argparse.ArgumentParser(description=kiwi_description)
+
+	"""Oscillate a wave with given parameters"""
+
+	parser = argparse.ArgumentParser(description=kiwi_main.__doc__)
 
 	parser.add_argument('-f', '--frequency', help='oscillation frequency (Hz)', type=int, required=True)
 	parser.add_argument('-w', '--waveform', help='oscillation waveform', choices=waveforms, required=True)

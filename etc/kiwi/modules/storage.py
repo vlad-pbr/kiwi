@@ -1,5 +1,4 @@
 #!/usr/bin/env python2
-kiwi_description = 'Work with common file storage services to store and retrieve files'
 
 import argparse
 import requests
@@ -122,7 +121,10 @@ def parse_source(filepath):
 	return args_list
 
 def kiwi_main():
-	parser = argparse.ArgumentParser(description=kiwi_description)
+
+	"""Work with common file storage services to store and retrieve files"""
+
+	parser = argparse.ArgumentParser(description=kiwi_main.__doc__)
 	subparsers = parser.add_subparsers(title='actions', dest='action')
 	subparsers.required=True
 

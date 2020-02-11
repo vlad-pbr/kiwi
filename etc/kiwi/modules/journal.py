@@ -1,5 +1,4 @@
 #!/usr/bin/env python2
-kiwi_description = 'Log your thoughts and progress on different topics'
 kiwi_dependencies = ['storage']
 
 import argparse
@@ -51,10 +50,13 @@ def format_log(log):
 	return out
 
 def kiwi_main(kiwi):
+
+	"""Log your thoughts and progress on different topics"""
+
 	global journal_home_dir
 	journal_home_dir = kiwi['module_home']
 
-	parser = argparse.ArgumentParser(description=kiwi_description)
+	parser = argparse.ArgumentParser(description=kiwi_main.__doc__)
 
 	# log content options
 	content_group = parser.add_mutually_exclusive_group()
