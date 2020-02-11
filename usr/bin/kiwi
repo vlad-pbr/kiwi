@@ -205,6 +205,14 @@ def ensure_directory(directory):
 # ----- main logic -----
 
 def main():
+
+	"""
+	I'm kiwi. I fetch, update and run kiwi modules.
+
+	* To get a module, use 'kiwi -g [module]'
+	* To run a module, use 'kiwi [module]'
+	"""
+
 	# ensure modules directory exists
 	ensure_directory(kiwi_local_modules_dir)
 
@@ -266,7 +274,8 @@ def main():
 
 	else:
 		# parse args
-		parser = argparse.ArgumentParser(description="Kiwi (/'ki:wi/ KEE-wee) or kiwis are flightless birds native to New Zealand")
+		parser = argparse.ArgumentParser(description=main.__doc__,
+										 formatter_class=argparse.RawDescriptionHelpFormatter)
 		group = parser.add_mutually_exclusive_group()
 		group.add_argument('-l', '--list-modules', action="store_true")
 		group.add_argument('-g', '--get-modules', nargs='*')
@@ -347,7 +356,8 @@ def main():
 
 		# no arguments passed
 		else:
-			parser.print_help()			
+			print main.__doc__
+			print '\tTry getting and running the \'helloworld\' module!\n'
 
 if __name__ == "__main__":
         main()
