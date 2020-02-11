@@ -7,7 +7,8 @@ import sys
 import os
 import errno
 import traceback
-import re
+from imp import load_source, new_module, reload
+from tempfile import mkstemp
 from importlib import import_module
 from hashlib import sha256
 from datetime import datetime
@@ -29,22 +30,14 @@ def get_remote_module_list():
 
 def get_module_description(module):
 	try:
-		module_lines = None
-
-		# read the local module if present, remote if not present
+		# import the local module if present, remote if not present
 		if module in get_installed_module_list():
-			with open(kiwi_local_modules_dir + module + '.py') as module_file:
-				module_lines = module_file.readlines()
+			module_object = load_source(module, kiwi_local_modules_dir + module + '.py')
 		else:
-			module_lines = get(kiwi_repo_raw + kiwi_repo_modules_dir + module + '.py').split('\n')
+			module_object = new_module(module)
+			exec get(kiwi_repo_raw + kiwi_repo_modules_dir + module + '.py') in module_object.__dict__
 
-		# search for description tag
-		for line in module_lines:
-			match = re.match('kiwi_description\s*=\s*(.*)$', line)
-			if match:
-				return match.groups()[0].strip("\'\"")
-				
-		return '[missing description]'
+		return module_object.kiwi_description if hasattr(module_object, 'kiwi_description') else '[missing description]'
 
 	except Exception as e:
 		report(e)
@@ -283,12 +276,19 @@ def main():
 		group.add_argument('-U', '--self-update', action='store_true')
 		args = parser.parse_args()
 
+		# list modules
 		if args.list_modules:
 			installed = get_installed_module_list()
 			
 			# compare with remote modules and mark as installed
 			for module in get_remote_module_list():
 				print '[{}] {}: {}'.format('x' if module in installed else ' ', module, get_module_description(module))
+				if module in installed:
+					installed.remove(module)
+
+			# list unknown modules
+			for module in installed:
+				print '[{}] {}: {}'.format('?', module, get_module_description(module))
 
 		# fetching and updating modules have the same logic behind them
 		elif args.get_modules or args.update_modules:
