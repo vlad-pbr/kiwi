@@ -143,8 +143,8 @@ def report(e, description=None, fatal=False):
 		else:
 			print os.strerror(e.errno)
 	
-		if fatal:
-			exit()
+	if fatal:
+		exit()
 
 def get(url):
 	response = requests.get(url)
@@ -266,14 +266,14 @@ def main():
 
 	else:
 		# parse args
-		parser = argparse.ArgumentParser("Kiwi (/'ki:wi/ KEE-wee) or kiwis are flightless birds native to New Zealand")
+		parser = argparse.ArgumentParser(description="Kiwi (/'ki:wi/ KEE-wee) or kiwis are flightless birds native to New Zealand")
 		group = parser.add_mutually_exclusive_group()
 		group.add_argument('-l', '--list-modules', action="store_true")
 		group.add_argument('-g', '--get-modules', nargs='*')
 		group.add_argument('-u', '--update-modules', nargs='*')
 		group.add_argument('-U', '--self-update', action='store_true')
 		args = parser.parse_args()
-	
+
 		if args.list_modules:
 			installed = get_installed_module_list()
 			
@@ -282,7 +282,7 @@ def main():
 				print '[{}] {}: {}'.format('x' if module in installed else ' ', module, get_module_description(module))
 
 		# fetching and updating modules have the same logic behind them
-		if args.get_modules or args.update_modules:
+		elif args.get_modules or args.update_modules:
 			modules = args.get_modules if args.get_modules else args.update_modules
 
 			# fetching / updating all modules
@@ -328,7 +328,7 @@ def main():
 				print '\t* {} modules could not be updated'.format(len(modules_failed))
 	
 		# kiwi self update
-		if args.self_update:
+		elif args.self_update:
 			if os.geteuid() != 0:
 				kiwisay('run me with root permissions')
 				return
@@ -344,7 +344,10 @@ def main():
 						sys.stdout.flush()
 						overwrite(current_kiwi, latest_kiwi)
 						print "Done!"
-					
+
+		# no arguments passed
+		else:
+			parser.print_help()			
 
 if __name__ == "__main__":
         main()

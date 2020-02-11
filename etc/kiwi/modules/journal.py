@@ -54,7 +54,7 @@ def kiwi_main(kiwi):
 	global journal_home_dir
 	journal_home_dir = kiwi['module_home']
 
-	parser = argparse.ArgumentParser(kiwi_description)
+	parser = argparse.ArgumentParser(description=kiwi_description)
 
 	# log content options
 	content_group = parser.add_mutually_exclusive_group()
