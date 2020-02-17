@@ -54,7 +54,7 @@ def kiwi_main(kiwi):
 	"""Log your thoughts and progress on different topics"""
 
 	global journal_home_dir
-	journal_home_dir = kiwi['module_home']
+	journal_home_dir = kiwi.module_home
 
 	parser = argparse.ArgumentParser(description=kiwi_main.__doc__)
 

@@ -21,8 +21,8 @@ from sys import argv
 def get_url(kiwi):
 	videoId = 'hHW1oY26kxQ'
 
-	if isfile(kiwi['module_home'] + kiwi['module_name'] + '.conf'):
-		config_file = kiwi['parse_config'](kiwi['module_home'] + kiwi['module_name'] + '.conf')
+	if isfile(kiwi.module_home + kiwi.module_name + '.conf'):
+		config_file = kiwi['parse_config'](kiwi.module_home + kiwi.module_name + '.conf')
 		link = config_file.get('link')
 		key = config_file.get('key')
 

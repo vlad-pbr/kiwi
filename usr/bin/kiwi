@@ -7,6 +7,7 @@ import sys
 import os
 import errno
 import traceback
+from argparse import Namespace
 from imp import load_source, new_module
 from importlib import import_module
 from hashlib import sha256
@@ -210,6 +211,8 @@ def main():
 
 	# module execution
 	if len(sys.argv) > 1 and sys.argv[1][:1] != '-':
+
+		# register module name, drop kiwi from arguments
 		module_name = sys.argv[1]
 		sys.argv.pop(0)
 		sys.path.append(kiwi_local_modules_dir)
@@ -228,10 +231,15 @@ def main():
 				if modules_failed:
 					return
 				
-		# import and validate the module
+		# import module code
 		module = import_module(module_name)
-		if hasattr(module, 'kiwi_main'):
+
+		# validate the module
+		if not hasattr(module, 'kiwi_main'):
+			kiwisay("'{}' is not my module (missing kiwi_main() method)".format(module_name))
+		else:
 			ensure_directory(kiwi_home_dir + module_name)
+			os.chdir(kiwi_home_dir + module_name)
 			
 			# resolve dependencies
 			if hasattr(module, 'kiwi_dependencies'):
@@ -245,13 +253,13 @@ def main():
 						return
 
 			# prepare kiwi helper functions and variables
-			kiwi = {
-				'report': report,
-				'parse_config': parse_config,
-				'installed_module_list': get_installed_module_list(),
-				'module_name': module_name,
-				'module_home': kiwi_home_dir + module_name + '/'
-			}
+			kiwi = Namespace(
+				report = report,
+				parse_config = parse_config,
+				installed_module_list = get_installed_module_list(),
+				module_name = module_name,
+				module_home = kiwi_home_dir + module_name + '/'
+			)
 
 			# run the module and log any exceptions coming from it
 			try:
@@ -260,11 +268,10 @@ def main():
 				ex_type, module_exception, module_traceback = sys.exc_info()
 				kiwisay("module '{}' crashed with the following exception: {}".format(module_name, module_exception))
 				write_crashlog(kiwi_home_dir + module_name + '/crash.log', ex_type, module_exception, module_traceback)
-				
-		else:
-			kiwisay("'{}' is not my module (missing kiwi_main() method)".format(module_name))
 
+	# kiwi execution
 	else:
+
 		# parse args
 		parser = argparse.ArgumentParser(description=main.__doc__,
 										 formatter_class=argparse.RawDescriptionHelpFormatter)
