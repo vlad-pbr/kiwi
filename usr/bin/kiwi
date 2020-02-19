@@ -105,11 +105,11 @@ def fetch_modules(modules, update=False, cache_updates=True, quiet=False):
 					print 'Done'
 					modules_fetched.append(module[:-3])
 
-		except requests.exceptions.HTTPError as e:
+		except requests.exceptions.RequestException as e:
 			report(e, 'download failed')
 			modules_failed.append(module[:-3])
 		except (IOError, OSError) as e:
-			report(e, 'could not access local file')
+			report(e)
 			modules_failed.append(module[:-3])
 			
 	sys.stdout = terminal
@@ -132,27 +132,15 @@ def ask(query, options):
 
 def report(e, description=None, fatal=False):
 	print 'Error:',
-	
-	if type(e) is requests.exceptions.HTTPError:
-		print '{} ({})'.format(description, e)
-
-	else:
-		if description:
-			print str(description),
-			print "(ERRNO {}: {})".format(e.errno, os.strerror(e.errno)) if hasattr(e, 'errno') else ''
-		else:
-			print os.strerror(e.errno)
+	print e if not description else '{} ({})'.format(description, e)
 	
 	if fatal:
 		sys.exit(1)
 
 def get(url):
 	response = requests.get(url)
-
-	if response.status_code is not 200:
-		raise requests.exceptions.HTTPError('file unreachable or non-existent')
-	else:
-		return response.text
+	response.raise_for_status()
+	return response.text
 
 def overwrite(file_, data):
 	file_.seek(0)
@@ -192,7 +180,7 @@ def write_crashlog(dest, exception_type, exception, exception_traceback):
 			crash_log.write('\n'*2)
 			return True
 	except Exception as e:
-		print 'Error: could not write crash log ({})'.format(e)
+		report(e, 'could not write crash log')
 		return False
 
 def ensure_directory(directory):
@@ -369,7 +357,7 @@ def main():
 							overwrite(current_kiwi, latest_kiwi)
 							print "Done!"
 			
-			except requests.exceptions.HTTPError as e:
+			except requests.exceptions.RequestException as e:
 				report(e, 'could not fetch latest version of kiwi', True)
 			except IOError as e:
 				report(e, 'could not open {} for writing'.format(os.path.abspath(__file__)), True)
