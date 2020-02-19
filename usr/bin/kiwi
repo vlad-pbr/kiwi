@@ -123,6 +123,13 @@ def kiwisay(jibberish, newline=True):
 def sha(data):
 	return sha256(data).hexdigest()
 
+def ask(query, options):
+	while True:
+		print '{} ({})'.format(query, '/'.join(options)),
+		response = raw_input()
+		if response in options:
+			return response
+
 def report(e, description=None, fatal=False):
 	print 'Error:',
 	
@@ -137,7 +144,7 @@ def report(e, description=None, fatal=False):
 			print os.strerror(e.errno)
 	
 	if fatal:
-		exit()
+		sys.exit(1)
 
 def get(url):
 	response = requests.get(url)
@@ -183,9 +190,10 @@ def write_crashlog(dest, exception_type, exception, exception_traceback):
 			crash_log.write(''.join(traceback.format_tb(exception_traceback)))
 			crash_log.write('{}: {}'.format(exception_type.__name__, exception))
 			crash_log.write('\n'*2)
-			kiwisay('detailed crash log can be found at {}'.format(dest))
+			return True
 	except Exception as e:
 		print 'Error: could not write crash log ({})'.format(e)
+		return False
 
 def ensure_directory(directory):
 	# make sure given directory exists
@@ -215,13 +223,12 @@ def main():
 		# register module name, drop kiwi from arguments
 		module_name = sys.argv[1]
 		sys.argv.pop(0)
-		sys.path.append(kiwi_local_modules_dir)
 		
 		# if module is not installed - see if it exists on remote
 		if module_name not in get_installed_module_list():
 			if module_name not in get_remote_module_list():
 				kiwisay("I don't have a module called '{}' :(".format(module_name))
-				return
+				sys.exit(1)
 			
 			# fetch the module
 			else:
@@ -229,17 +236,15 @@ def main():
 				module_as_list.append(module_name)
 				_, _, modules_failed = fetch_modules(module_as_list)
 				if modules_failed:
-					return
+					sys.exit(1)
 				
 		# import module code
-		module = import_module(module_name)
+		module = load_source(module_name, kiwi_local_modules_dir + module_name + '.py')
 
 		# validate the module
 		if not hasattr(module, 'kiwi_main'):
 			kiwisay("'{}' is not my module (missing kiwi_main() method)".format(module_name))
 		else:
-			ensure_directory(kiwi_home_dir + module_name)
-			os.chdir(kiwi_home_dir + module_name)
 			
 			# resolve dependencies
 			if hasattr(module, 'kiwi_dependencies'):
@@ -250,24 +255,32 @@ def main():
 						kiwisay('could not resolve the following dependencies: {}'.format(', '.join(modules_failed)))
 						print "Possible solutions:"
 						print "\t* sudo kiwi -g {}".format(' '.join(modules_failed))
-						return
+						sys.exit(1)
 
 			# prepare kiwi helper functions and variables
 			kiwi = Namespace(
+				module_name = module_name,
+				module_home = kiwi_home_dir + module_name + '/',
+				installed_module_list = get_installed_module_list(),
 				report = report,
 				parse_config = parse_config,
-				installed_module_list = get_installed_module_list(),
-				module_name = module_name,
-				module_home = kiwi_home_dir + module_name + '/'
+				ask = ask,
 			)
+
+			# change directory to module directory
+			ensure_directory(kiwi_home_dir + module_name)
+			os.chdir(kiwi_home_dir + module_name)
 
 			# run the module and log any exceptions coming from it
 			try:
-				module.kiwi_main() if len(getargspec(module.kiwi_main).args) == 0 else module.kiwi_main(kiwi)
+				rc = module.kiwi_main() if len(getargspec(module.kiwi_main).args) == 0 else module.kiwi_main(kiwi)
+				sys.exit(rc if isinstance(rc, int) else 0)
 			except Exception:
 				ex_type, module_exception, module_traceback = sys.exc_info()
 				kiwisay("module '{}' crashed with the following exception: {}".format(module_name, module_exception))
-				write_crashlog(kiwi_home_dir + module_name + '/crash.log', ex_type, module_exception, module_traceback)
+				if write_crashlog(kiwi_home_dir + module_name + '/crash.log', ex_type, module_exception, module_traceback):
+					kiwisay('detailed crash log can be found at {}'.format(dest))
+				sys.exit(1)
 
 	# kiwi execution
 	else:
@@ -307,7 +320,7 @@ def main():
 					print "Possible solutions:"
 					print "\t* kiwi {} all".format(sys.argv[1])
 					print "\t* kiwi " + sys.argv[1] + ' ' + ' '.join([module for module in modules if module != 'all'])
-					return
+					sys.exit(1)
 				
 				# collect remote module list if fetching, local list if updating
 				else:
@@ -330,11 +343,10 @@ def main():
 	
 				# update outdates modules if need be
 				if len(modules_update) > 0:
-					print 'Update the outdated modules? (y/n): ',
-					if raw_input() == 'y':
+					if ask('Update the outdated modules?', ['y', 'n']) == 'y':
 						modules_fetched, modules_update, modules_failed = fetch_modules(modules_update, True)
 					else:
-						return
+						sys.exit(0)
 
 			# update results
 			if args.update_modules or len(modules_update) > 0:
@@ -351,8 +363,7 @@ def main():
 					if sha(latest_kiwi) == sha(current_kiwi.read()):
 						kiwisay("I'm up to date")
 					else:
-						kiwisay("I have an available update. Proceed? (y/n)", False),
-						if raw_input() == 'y':
+						if ask('I have an available update. Proceed?', ['y', 'n']) == 'y':
 							kiwisay("Updating...", False)
 							sys.stdout.flush()
 							overwrite(current_kiwi, latest_kiwi)
