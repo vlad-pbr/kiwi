@@ -46,7 +46,6 @@ def fetch_modules(modules, update=False, cache_updates=True, quiet=False):
 	modules_fetched = []
 	modules_update = []
 	modules_failed = []
-	modules_current = 0
 
 	# redirect stdout on quiet mode
 	terminal = sys.stdout
@@ -54,14 +53,13 @@ def fetch_modules(modules, update=False, cache_updates=True, quiet=False):
 	if quiet:
 		sys.stdout = devnull
 
-	for module in modules:
-		modules_current += 1
+	for index, module in enumerate(modules):
 		
 		# remote modules end with .py
 		if module[-3:] != '.py':
 			module = module + '.py'
 			
-		print "[" + str(modules_current) + "/" + str(len(modules)) + "]",
+		print "[" + str(index + 1) + "/" + str(len(modules)) + "]",
 		print "Fetching " + module + '...',
 		sys.stdout.flush()
 
@@ -73,6 +71,7 @@ def fetch_modules(modules, update=False, cache_updates=True, quiet=False):
 
 				os.remove(kiwi_local_modules_dir + module + '.latest')
 				print 'Updated'
+				modules_fetched.append(module[:-3])
 
 			# get latest module
 			else:
@@ -332,7 +331,7 @@ def main():
 				# update outdates modules if need be
 				if len(modules_update) > 0:
 					if ask('Update the outdated modules?', ['y', 'n']) == 'y':
-						modules_fetched, modules_update, modules_failed = fetch_modules(modules_update, True)
+						modules_fetched, _, modules_failed = fetch_modules(modules_update, True)
 					else:
 						sys.exit(0)
 
