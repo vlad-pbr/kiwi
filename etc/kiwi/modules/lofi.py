@@ -16,13 +16,13 @@ from distutils.spawn import find_executable
 from os.path import isfile
 from requests import get
 from random import randint
-from sys import argv
+from sys import argv, exit
 
 def get_url(kiwi):
 	videoId = 'hHW1oY26kxQ'
 
 	if isfile(kiwi.module_home + kiwi.module_name + '.conf'):
-		config_file = kiwi['parse_config'](kiwi.module_home + kiwi.module_name + '.conf')
+		config_file = kiwi.parse_config(kiwi.module_home + kiwi.module_name + '.conf')
 		link = config_file.get('link')
 		key = config_file.get('key')
 
@@ -52,3 +52,4 @@ def kiwi_main(kiwi):
 		call(["xdg-open", get_url(kiwi)])
 	else:
 		print "No available browsers found."
+		exit(1)
