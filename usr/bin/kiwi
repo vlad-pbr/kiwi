@@ -9,7 +9,6 @@ import errno
 import traceback
 from argparse import Namespace
 from imp import load_source, new_module
-from importlib import import_module
 from hashlib import sha256
 from datetime import datetime
 from inspect import getargspec
@@ -166,7 +165,7 @@ def parse_config(path):
 
 def write_crashlog(dest, exception_type, exception, exception_traceback):
 	if '/' in dest:
-		ensure_directory(dest)
+		ensure_directory('/'.join(dest.split('/')[:-1]))
 
 	# append to file if it already exists
 	open_mode = 'a' if os.path.isfile(dest) else 'w'
@@ -265,8 +264,8 @@ def main():
 			except Exception:
 				ex_type, module_exception, module_traceback = sys.exc_info()
 				kiwisay("module '{}' crashed with the following exception: {}".format(module_name, module_exception))
-				if write_crashlog(kiwi_home_dir + module_name + '/crash.log', ex_type, module_exception, module_traceback):
-					kiwisay('detailed crash log can be found at {}'.format(dest))
+				if write_crashlog(kiwi.module_home + 'crash.log', ex_type, module_exception, module_traceback):
+					kiwisay('detailed crash log can be found at {}'.format(kiwi.module_home + 'crash.log'))
 				sys.exit(1)
 
 	# kiwi execution
