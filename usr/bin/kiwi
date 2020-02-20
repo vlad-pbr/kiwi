@@ -7,6 +7,8 @@ import sys
 import os
 import errno
 import traceback
+import tempfile
+from shutil import rmtree
 from argparse import Namespace
 from imp import load_source, new_module
 from hashlib import sha256
@@ -18,6 +20,7 @@ kiwi_repo_modules_dir = "etc/kiwi/modules/"
 kiwi_repo_api = "https://api.github.com/repos/isLonerism/kiwi/contents/"
 kiwi_repo_raw = "https://raw.githubusercontent.com/isLonerism/kiwi/master/"
 kiwi_home_dir = os.path.expanduser("~") + '/.kiwi/'
+kiwi_cache_dir = None
 
 # ----- module related functions -----
 
@@ -45,6 +48,7 @@ def fetch_modules(modules, update=False, cache_updates=True, quiet=False):
 	modules_fetched = []
 	modules_update = []
 	modules_failed = []
+	global kiwi_cache_dir
 
 	# redirect stdout on quiet mode
 	terminal = sys.stdout
@@ -64,11 +68,10 @@ def fetch_modules(modules, update=False, cache_updates=True, quiet=False):
 
 		try:
 			# update from cached file
-			if update and os.path.isfile(kiwi_local_modules_dir + module + '.latest'):
-				with open(kiwi_local_modules_dir + module, 'w') as current, open(kiwi_local_modules_dir + module + '.latest', 'r') as cached:
+			if update and os.path.isfile(os.path.join(kiwi_cache_dir, module + '.cached')):
+				with open(kiwi_local_modules_dir + module, 'w') as current, open(os.path.join(kiwi_cache_dir, module + '.cached'), 'r') as cached:
 					overwrite(current, cached.read())
 
-				os.remove(kiwi_local_modules_dir + module + '.latest')
 				print 'Updated'
 				modules_fetched.append(module[:-3])
 
@@ -78,18 +81,23 @@ def fetch_modules(modules, update=False, cache_updates=True, quiet=False):
 
 				# update / cache separately if module exists
 				if os.path.isfile(kiwi_local_modules_dir + module):
-					with open(kiwi_local_modules_dir + module, 'r+') as current:
+					with open(kiwi_local_modules_dir + module, 'r') as current:
 						if sha(latest) == sha(current.read()):
 							print 'Up to date'
 						else:
 							if update:
+
+								# reopen for writing
+								current.close()
+								current = open(kiwi_local_modules_dir + module, 'w')
 								overwrite(current, latest)
 
 								print 'Updated'
 								modules_fetched.append(module[:-3])
 							else:
 								if cache_updates:
-									with open(kiwi_local_modules_dir + module + '.latest', 'w') as cached:
+									kiwi_cache_dir = tempfile.mkdtemp() if not kiwi_cache_dir else kiwi_cache_dir
+									with open(os.path.join(kiwi_cache_dir, module + '.cached'), 'w') as cached:
 										cached.write(latest)
 
 								print 'Update available'
@@ -110,6 +118,10 @@ def fetch_modules(modules, update=False, cache_updates=True, quiet=False):
 			report(e)
 			modules_failed.append(module[:-3])
 			
+	# clean any cached files after the updates
+	if update:
+		clear_cache()
+
 	sys.stdout = terminal
 	return modules_fetched, modules_update, modules_failed
 
@@ -162,6 +174,14 @@ def parse_config(path):
 				report(e, '{}: syntax error on line {}: "{}"'.format(path, index + 1, arg), True)
 
 	return args
+
+def clear_cache():
+	global kiwi_cache_dir
+
+	if kiwi_cache_dir:
+		rmtree(kiwi_cache_dir)
+
+	kiwi_cache_dir = None
 
 def write_crashlog(dest, exception_type, exception, exception_traceback):
 	if '/' in dest:
@@ -236,7 +256,7 @@ def main():
 			if hasattr(module, 'kiwi_dependencies'):
 				dependencies = set(module.kiwi_dependencies) - set(get_installed_module_list())
 				if dependencies:
-					_, _, modules_failed = fetch_modules(dependencies, quiet=False)
+					_, _, modules_failed = fetch_modules(dependencies)
 					if modules_failed:
 						kiwisay('could not resolve the following dependencies: {}'.format(', '.join(modules_failed)))
 						print "Possible solutions:"
@@ -332,6 +352,7 @@ def main():
 					if ask('Update the outdated modules?', ['y', 'n']) == 'y':
 						modules_fetched, _, modules_failed = fetch_modules(modules_update, True)
 					else:
+						clear_cache()
 						sys.exit(0)
 
 			# update results
