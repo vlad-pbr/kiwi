@@ -10,7 +10,6 @@ import traceback
 import tempfile
 import atexit
 from shutil import rmtree
-from argparse import Namespace
 from imp import load_source, new_module
 from hashlib import sha256
 from datetime import datetime
@@ -292,8 +291,8 @@ def main():
 						print "\t* sudo kiwi -g {}".format(' '.join(modules_failed))
 						sys.exit(1)
 
-			# prepare kiwi helper functions and variables
-			module.__dict__['kiwi'] = Namespace(
+			# inject kiwi helper functions and variables
+			module.__dict__['kiwi'] = argparse.Namespace(
 				module_name = module_name,
 				module_home = kiwi_home_dir + module_name + '/',
 				installed_module_list = get_installed_module_list(),
