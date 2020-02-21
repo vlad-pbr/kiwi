@@ -2,13 +2,12 @@
 
 import argparse
 import requests
-import urllib2
 import sys
 import os
 import errno
 import traceback
-import tempfile
 import atexit
+from tempfile import mkdtemp
 from shutil import rmtree
 from imp import load_source, new_module
 from hashlib import sha256
@@ -234,7 +233,7 @@ def init():
 
 	# create cache directory if required
 	global kiwi_cache_dir
-	kiwi_cache_dir = tempfile.mkdtemp() if kiwi_cache_updates.lower() == 'true' else None
+	kiwi_cache_dir = mkdtemp() if kiwi_cache_updates.lower() == 'true' else None
 
 	# ensure modules directory exists
 	ensure_directory(kiwi_local_modules_dir)
