@@ -16,12 +16,26 @@ from hashlib import sha256
 from datetime import datetime
 from inspect import getargspec
 
-kiwi_local_modules_dir = "/etc/kiwi/modules/"
+# unconfigurable globals
 kiwi_repo_modules_dir = "etc/kiwi/modules/"
 kiwi_repo_api = "https://api.github.com/repos/isLonerism/kiwi/contents/"
 kiwi_repo_raw = "https://raw.githubusercontent.com/isLonerism/kiwi/master/"
 kiwi_home_dir = os.path.expanduser("~") + '/.kiwi/'
-kiwi_cache_dir = tempfile.mkdtemp()
+kiwi_cache_dir = None
+
+# configurable vars declaration wrapper
+def declare_configurable(key, value):
+	globals()[key] = value
+	if not globals().get('kiwi_config_vars'):
+		globals()['kiwi_config_vars'] = []
+	globals()['kiwi_config_vars'].append(key)
+
+def get_configurable_vars():
+	return globals()['kiwi_config_vars']
+
+# configurable variables
+declare_configurable('kiwi_local_modules_dir', '/etc/kiwi/modules/')
+declare_configurable('kiwi_cache_updates', 'true')
 
 # ----- module related functions -----
 
@@ -35,7 +49,7 @@ def get_module_description(module):
 	try:
 		# import the local module if present, remote if not present
 		if module in get_installed_module_list():
-			module_object = load_source(module, kiwi_local_modules_dir + module + '.py')
+			module_object = load_source(module, os.path.join(kiwi_local_modules_dir, module + '.py'))
 		else:
 			module_object = new_module(module)
 			exec get(kiwi_repo_raw + kiwi_repo_modules_dir + module + '.py') in module_object.__dict__
@@ -45,11 +59,10 @@ def get_module_description(module):
 	except Exception as e:
 		report(e)
 
-def fetch_modules(modules, update=False, cache_updates=True, quiet=False):
+def fetch_modules(modules, update=False, quiet=False):
 	modules_fetched = []
 	modules_update = []
 	modules_failed = []
-	global kiwi_cache_dir
 
 	# redirect stdout on quiet mode
 	terminal = sys.stdout
@@ -69,8 +82,8 @@ def fetch_modules(modules, update=False, cache_updates=True, quiet=False):
 
 		try:
 			# update from cached file
-			if update and os.path.isfile(os.path.join(kiwi_cache_dir, module + '.cached')):
-				with open(kiwi_local_modules_dir + module, 'w') as current, open(os.path.join(kiwi_cache_dir, module + '.cached'), 'r') as cached:
+			if update and kiwi_cache_updates.lower() == 'true' and os.path.isfile(os.path.join(kiwi_cache_dir, module + '.cached')):
+				with open(os.path.join(kiwi_local_modules_dir, module), 'w') as current, open(os.path.join(kiwi_cache_dir, module + '.cached'), 'r') as cached:
 					overwrite(current, cached.read())
 
 				print 'Updated'
@@ -81,8 +94,8 @@ def fetch_modules(modules, update=False, cache_updates=True, quiet=False):
 				latest = get(kiwi_repo_raw + kiwi_repo_modules_dir + module)
 
 				# update / cache separately if module exists
-				if os.path.isfile(kiwi_local_modules_dir + module):
-					with open(kiwi_local_modules_dir + module, 'r') as current:
+				if os.path.isfile(os.path.join(kiwi_local_modules_dir, module)):
+					with open(os.path.join(kiwi_local_modules_dir, module), 'r') as current:
 						if sha(latest) == sha(current.read()):
 							print 'Up to date'
 						else:
@@ -90,13 +103,13 @@ def fetch_modules(modules, update=False, cache_updates=True, quiet=False):
 
 								# reopen for writing
 								current.close()
-								current = open(kiwi_local_modules_dir + module, 'w')
+								current = open(os.path.join(kiwi_local_modules_dir, module), 'w')
 								overwrite(current, latest)
 
 								print 'Updated'
 								modules_fetched.append(module[:-3])
 							else:
-								if cache_updates:
+								if kiwi_cache_updates.lower() == 'true':
 									with open(os.path.join(kiwi_cache_dir, module + '.cached'), 'w') as cached:
 										cached.write(latest)
 
@@ -105,7 +118,7 @@ def fetch_modules(modules, update=False, cache_updates=True, quiet=False):
 
 				# write module
 				else:
-					with open(kiwi_local_modules_dir + module, 'w') as module_file:
+					with open(os.path.join(kiwi_local_modules_dir, module), 'w') as module_file:
 						module_file.write(latest)
 						
 					print 'Done'
@@ -208,6 +221,25 @@ def ensure_directory(directory):
 
 # ----- main logic -----
 
+def init():
+	
+	# read custom config file from home directory, then from default
+	for path in [kiwi_home_dir, '/etc/kiwi/']:
+		if os.path.isfile(path + 'kiwi.conf'):
+			config = parse_config(path + 'kiwi.conf')
+
+			# overwrite configurable variables if present
+			for var in get_configurable_vars():
+				globals()[var] = config.get(var, globals()[var])
+			break
+
+	# create cache directory if required
+	global kiwi_cache_dir
+	kiwi_cache_dir = tempfile.mkdtemp() if kiwi_cache_updates.lower() == 'true' else None
+
+	# ensure modules directory exists
+	ensure_directory(kiwi_local_modules_dir)
+
 def main():
 
 	"""
@@ -217,8 +249,8 @@ def main():
 	* To run a module, use 'kiwi [module]'
 	"""
 
-	# ensure modules directory exists
-	ensure_directory(kiwi_local_modules_dir)
+	# kiwi pre-requisites
+	init()
 
 	# module execution
 	if len(sys.argv) > 1 and sys.argv[1][:1] != '-':
@@ -242,7 +274,7 @@ def main():
 					sys.exit(1)
 				
 		# import module code
-		module = load_source(module_name, kiwi_local_modules_dir + module_name + '.py')
+		module = load_source(module_name, os.path.join(kiwi_local_modules_dir, module_name + '.py'))
 
 		# validate the module
 		if not hasattr(module, 'kiwi_main'):
