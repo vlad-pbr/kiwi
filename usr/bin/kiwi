@@ -8,7 +8,6 @@ import os
 import errno
 import traceback
 import tempfile
-import ctypes
 from shutil import rmtree
 from argparse import Namespace
 from imp import load_source, new_module
