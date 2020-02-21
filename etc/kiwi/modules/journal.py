@@ -1,7 +1,20 @@
 #!/usr/bin/env python2
+
+"""
+Usage examples:
+
+	* kiwi journal -t diary -l "The weather was nice today."
+	* kiwi journal -t writing -f /path/to/a/new/story/I/wrote.txt
+
+You can use this module to keep tabs on basically anything: log day to day stuff or keep memos of things.
+I personally needed this module when learning how to drive and getting my license.
+It really helped me keep tabs on my progress and see how many lessons I've done and money I spent.
+"""
+
 kiwi_dependencies = ['storage']
 
 import argparse
+from os.path import isfile
 from datetime import datetime
 from subprocess import Popen, PIPE
 import shlex
@@ -56,7 +69,9 @@ def kiwi_main(kiwi):
 	global journal_home_dir
 	journal_home_dir = kiwi.module_home
 
-	parser = argparse.ArgumentParser(description=kiwi_main.__doc__)
+	parser = argparse.ArgumentParser(description=kiwi_main.__doc__,
+									 epilog=__doc__,
+									 formatter_class=argparse.RawDescriptionHelpFormatter)
 
 	# log content options
 	content_group = parser.add_mutually_exclusive_group()
@@ -70,8 +85,12 @@ def kiwi_main(kiwi):
 	
 	args = parser.parse_args()
 
+	# journal needs its sources
+	if not isfile('sources'):
+		print 'You need to set up your journal sources using the kiwi storage module.'
+
 	# list journals
-	if args.list_topics:
+	elif args.list_topics:
 		print get_topics(),
 
 	# print journal
