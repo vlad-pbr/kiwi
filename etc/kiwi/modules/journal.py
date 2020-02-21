@@ -19,8 +19,6 @@ from datetime import datetime
 from subprocess import Popen, PIPE
 import shlex
 
-journal_home_dir = None
-
 def get_timestamp():
 	return datetime.now().strftime("%B %d, %Y at %H:%M")
 
@@ -29,11 +27,11 @@ def command(cmd):
 
 def read(topic):
 	return command('kiwi storage source -r -S {} -n {}'.format(\
-                journal_home_dir + 'sources', topic))
+                kiwi.module_home + 'sources', topic))
 
 def get_topics():
 	return command('kiwi storage source -l -S {}'.format(\
-                journal_home_dir + 'sources'))
+                kiwi.module_home + 'sources'))
 
 def write(log, topic):
 
@@ -41,9 +39,8 @@ def write(log, topic):
 	journal = read(topic)
 
 	if len(journal.split('\n')) < 4:
-		print 'Topic does not exist. Create? (y/n):',
-		if raw_input() != 'y':
-			exit()
+		if kiwi.ask('Topic does not exist. Create?', ['y', 'n']) != 'y':
+			return
 		else:
 			log = format_log(log)
 
@@ -52,7 +49,7 @@ def write(log, topic):
 
 	# use storage module to store the journal
 	stdout = command('kiwi storage source -S {} -m "{}" -n {} -c "{}"'.format(\
-                journal_home_dir + 'sources', get_timestamp(), topic, log))
+                kiwi.module_home + 'sources', get_timestamp(), topic, log))
 	print stdout.rstrip(),
 
 def format_log(log):
@@ -65,9 +62,6 @@ def format_log(log):
 def kiwi_main():
 
 	"""Log your thoughts and progress on different topics"""
-
-	global journal_home_dir
-	journal_home_dir = kiwi.module_home
 
 	parser = argparse.ArgumentParser(description=kiwi_main.__doc__,
 									 epilog=__doc__,
