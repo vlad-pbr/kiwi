@@ -285,8 +285,8 @@ def main():
 			except Exception:
 				ex_type, module_exception, module_traceback = sys.exc_info()
 				kiwisay("module '{}' crashed with the following exception: {}".format(module_name, module_exception))
-				if write_crashlog(kiwi.module_home + 'crash.log', ex_type, module_exception, module_traceback):
-					kiwisay('detailed crash log can be found at {}'.format(kiwi.module_home + 'crash.log'))
+				if write_crashlog(module.kiwi.module_home + 'crash.log', ex_type, module_exception, module_traceback):
+					kiwisay('detailed crash log can be found at {}'.format(module.kiwi.module_home + 'crash.log'))
 				sys.exit(1)
 
 	# kiwi execution
