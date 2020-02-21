@@ -8,6 +8,7 @@ import os
 import errno
 import traceback
 import tempfile
+import atexit
 from shutil import rmtree
 from argparse import Namespace
 from imp import load_source, new_module
@@ -20,7 +21,7 @@ kiwi_repo_modules_dir = "etc/kiwi/modules/"
 kiwi_repo_api = "https://api.github.com/repos/isLonerism/kiwi/contents/"
 kiwi_repo_raw = "https://raw.githubusercontent.com/isLonerism/kiwi/master/"
 kiwi_home_dir = os.path.expanduser("~") + '/.kiwi/'
-kiwi_cache_dir = None
+kiwi_cache_dir = tempfile.mkdtemp()
 
 # ----- module related functions -----
 
@@ -96,7 +97,6 @@ def fetch_modules(modules, update=False, cache_updates=True, quiet=False):
 								modules_fetched.append(module[:-3])
 							else:
 								if cache_updates:
-									kiwi_cache_dir = tempfile.mkdtemp() if not kiwi_cache_dir else kiwi_cache_dir
 									with open(os.path.join(kiwi_cache_dir, module + '.cached'), 'w') as cached:
 										cached.write(latest)
 
@@ -117,10 +117,6 @@ def fetch_modules(modules, update=False, cache_updates=True, quiet=False):
 		except (IOError, OSError) as e:
 			report(e)
 			modules_failed.append(module[:-3])
-			
-	# clean any cached files after the updates
-	if update:
-		clear_cache()
 
 	sys.stdout = terminal
 	return modules_fetched, modules_update, modules_failed
@@ -175,6 +171,7 @@ def parse_config(path):
 
 	return args
 
+@atexit.register
 def clear_cache():
 	global kiwi_cache_dir
 
@@ -352,7 +349,6 @@ def main():
 					if ask('Update the outdated modules?', ['y', 'n']) == 'y':
 						modules_fetched, _, modules_failed = fetch_modules(modules_update, True)
 					else:
-						clear_cache()
 						sys.exit(0)
 
 			# update results
