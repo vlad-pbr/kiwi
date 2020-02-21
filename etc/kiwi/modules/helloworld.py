@@ -22,7 +22,7 @@ kiwi_dependencies = []
 import argparse
 
 # the basic requirement for a kiwi module is to have a kiwi_main() method
-def kiwi_main(kiwi):
+def kiwi_main():
 
 	# docstrings are kiwi's module descriptions
 
@@ -33,7 +33,7 @@ def kiwi_main(kiwi):
 	parser.add_argument('-n', '--name', help='who should be greeted?', type=str)
 	args = parser.parse_args()
 
-	# namespace passed to kiwi_main method contains useful functions and variables
+	# 'kiwi' namespace injected into the module contains useful functions and variables
 	if args.name:
 		if args.name == kiwi.module_name:
 			print 'Hello to you too!'

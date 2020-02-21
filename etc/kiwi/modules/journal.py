@@ -62,7 +62,7 @@ def format_log(log):
 	out += log.rstrip('\n') + '\n'*3
 	return out
 
-def kiwi_main(kiwi):
+def kiwi_main():
 
 	"""Log your thoughts and progress on different topics"""
 

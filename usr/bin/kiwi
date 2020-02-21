@@ -8,6 +8,7 @@ import os
 import errno
 import traceback
 import tempfile
+import ctypes
 from shutil import rmtree
 from argparse import Namespace
 from imp import load_source, new_module
@@ -264,7 +265,7 @@ def main():
 						sys.exit(1)
 
 			# prepare kiwi helper functions and variables
-			kiwi = Namespace(
+			module.__dict__['kiwi'] = Namespace(
 				module_name = module_name,
 				module_home = kiwi_home_dir + module_name + '/',
 				installed_module_list = get_installed_module_list(),
@@ -279,7 +280,7 @@ def main():
 
 			# run the module and log any exceptions coming from it
 			try:
-				rc = module.kiwi_main() if len(getargspec(module.kiwi_main).args) == 0 else module.kiwi_main(kiwi)
+				rc = module.kiwi_main()
 				sys.exit(rc if isinstance(rc, int) else 0)
 			except Exception:
 				ex_type, module_exception, module_traceback = sys.exc_info()
