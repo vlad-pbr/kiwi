@@ -41,7 +41,7 @@ def get_installed_module_list():
 	return [module for module in os.listdir(kiwi_local_modules_dir)]
 
 def get_remote_module_list():
-	return [module['name'] for module in requests.get(os.path.join(kiwi_repo_api, kiwi_repo_modules_dir)).json()]
+	return [module['name'] for module in get(os.path.join(kiwi_repo_api, kiwi_repo_modules_dir), True)]
 
 def get_module_description(module):
 	try:
@@ -155,10 +155,10 @@ def report(e, description=None, fatal=False):
 	if fatal:
 		sys.exit(1)
 
-def get(url):
+def get(url, json=False):
 	response = requests.get(url)
 	response.raise_for_status()
-	return response.text
+	return response.json() if json else response.text
 
 def overwrite(file_, data):
 	file_.seek(0)
