@@ -75,6 +75,7 @@ def fetch_modules(modules, update=False, quiet=False, server=False):
 		print "Fetching " + module + '...',
 		sys.stdout.flush()
 
+		ensure_directory(os.path.join(kiwi_local_modules_dir, module))
 		cached_filepath = os.path.join(kiwi_cache_dir, module + '.' + module_file[:-3] + '.cached')
 		local_filepath = os.path.join(kiwi_local_modules_dir, module, module_file)
 
@@ -303,8 +304,8 @@ def main():
 			)
 
 			# change directory to module directory
-			ensure_directory(module.__dict__['kiwi']["module_home"])
-			os.chdir(module.__dict__['kiwi']["module_home"])
+			ensure_directory(module.kiwi.module_home)
+			os.chdir(module.kiwi.module_home)
 
 			# run the module and log any exceptions coming from it
 			try:
