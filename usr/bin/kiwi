@@ -15,7 +15,7 @@ from datetime import datetime
 from inspect import getargspec
 
 # unconfigurable globals
-kiwi_repo_modules_dir = "etc/kiwi/modules"
+kiwi_repo_modules_dir = "etc/kiwi/modules/"
 kiwi_repo_api = "https://api.github.com/repos/isLonerism/kiwi/contents/"
 kiwi_repo_raw = "https://raw.githubusercontent.com/isLonerism/kiwi/master/"
 kiwi_home_dir = os.path.expanduser("~") + '/.kiwi/'
