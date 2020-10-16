@@ -13,7 +13,7 @@ In case both are specified, 'link' takes priority.
 
 from subprocess import call
 from distutils.spawn import find_executable
-from os.path import isfile
+from os.path import isfile, join
 from requests import get
 from random import randint
 from sys import argv, exit
@@ -21,8 +21,9 @@ from sys import argv, exit
 def get_url(kiwi):
 	videoId = 'hHW1oY26kxQ'
 
-	if isfile(kiwi.module_home + kiwi.module_name + '.conf'):
-		config_file = kiwi.parse_config(kiwi.module_home + kiwi.module_name + '.conf')
+	config_path = join(kiwi.module_home, kiwi.module_name + '.conf')
+	if isfile(config_path):
+		config_file = kiwi.parse_config(config_path)
 		link = config_file.get('link')
 		key = config_file.get('key')
 

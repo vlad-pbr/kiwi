@@ -14,7 +14,7 @@ It really helped me keep tabs on my progress and see how many lessons I've done 
 kiwi_dependencies = ['storage']
 
 import argparse
-from os.path import isfile
+from os.path import isfile, join
 from datetime import datetime
 from subprocess import Popen, PIPE
 import shlex
@@ -27,11 +27,11 @@ def command(cmd):
 
 def read(topic):
 	return command('kiwi storage source -r -S {} -n {}'.format(\
-                kiwi.module_home + 'sources', topic))
+                join(kiwi.module_home, 'sources'), topic))
 
 def get_topics():
 	return command('kiwi storage source -l -S {}'.format(\
-                kiwi.module_home + 'sources'))
+                join(kiwi.module_home, 'sources')))
 
 def write(log, topic):
 
@@ -49,7 +49,7 @@ def write(log, topic):
 
 	# use storage module to store the journal
 	stdout = command('kiwi storage source -S {} -m "{}" -n {} -c "{}"'.format(\
-                kiwi.module_home + 'sources', get_timestamp(), topic, log))
+                join(kiwi.module_home, 'sources'), get_timestamp(), topic, log))
 	print stdout.rstrip(),
 
 def format_log(log):
