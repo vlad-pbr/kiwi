@@ -223,8 +223,10 @@ def init():
 	
 	# read custom config file from home directory, then from default
 	for path in [kiwi_home_dir, '/etc/kiwi/']:
-		if os.path.isfile(path + 'kiwi.conf'):
-			config = parse_config(path + 'kiwi.conf')
+		full_path = os.path.join(path + 'kiwi.conf')
+
+		if os.path.isfile(full_path):
+			config = parse_config(full_path)
 
 			# overwrite configurable variables if present
 			for var in get_configurable_vars():
