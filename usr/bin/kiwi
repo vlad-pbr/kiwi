@@ -374,7 +374,7 @@ def main():
 				if len(modules) != len(modules_fetched) + len(modules_update) + len(modules_failed):
 					print '\t* {} modules are present and up to date'.format(len(modules) - len(modules_fetched) - len(modules_update) - len(modules_failed))
 	
-				# update outdates modules if need be
+				# update outdated modules if need be
 				if len(modules_update) > 0:
 					if ask('Update the outdated modules?', ['y', 'n']) == 'y':
 						modules_fetched, _, modules_failed = fetch_modules(modules_update, True)
