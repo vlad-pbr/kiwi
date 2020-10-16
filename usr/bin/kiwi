@@ -15,7 +15,7 @@ from datetime import datetime
 from inspect import getargspec
 
 # unconfigurable globals
-kiwi_repo_modules_dir = "etc/kiwi/modules/"
+kiwi_repo_modules_dir = "etc/kiwi/modules"
 kiwi_repo_api = "https://api.github.com/repos/isLonerism/kiwi/contents/"
 kiwi_repo_raw = "https://raw.githubusercontent.com/isLonerism/kiwi/master/"
 kiwi_home_dir = os.path.expanduser("~") + '/.kiwi/'
@@ -38,29 +38,30 @@ declare_configurable('kiwi_cache_updates', 'true')
 # ----- module related functions -----
 
 def get_installed_module_list():
-	return [module[:-3] for module in os.listdir(kiwi_local_modules_dir) if module[-3:] == '.py']
+	return [module for module in os.listdir(kiwi_local_modules_dir)]
 
 def get_remote_module_list():
-	return [module['name'][:-3] for module in requests.get(kiwi_repo_api + kiwi_repo_modules_dir).json() if module['name'][-3:] == '.py']
+	return [module['name'] for module in requests.get(kiwi_repo_api + kiwi_repo_modules_dir).json()]
 
 def get_module_description(module):
 	try:
 		# import the local module if present, remote if not present
 		if module in get_installed_module_list():
-			module_object = load_source(module, os.path.join(kiwi_local_modules_dir, module + '.py'))
+			module_object = load_source(module, os.path.join(kiwi_local_modules_dir, module, 'client.py'))
 		else:
 			module_object = new_module(module)
-			exec get(kiwi_repo_raw + kiwi_repo_modules_dir + module + '.py') in module_object.__dict__
+			exec get(kiwi_repo_raw + kiwi_repo_modules_dir + module + '/client.py') in module_object.__dict__
 
 		return module_object.kiwi_main.__doc__ if hasattr(module_object, 'kiwi_main') and module_object.kiwi_main.__doc__ else '[missing description]'
 
 	except Exception as e:
 		report(e)
 
-def fetch_modules(modules, update=False, quiet=False):
+def fetch_modules(modules, update=False, quiet=False, server=False):
 	modules_fetched = []
 	modules_update = []
 	modules_failed = []
+	module_file = ('server' if server else 'client') + '.py'
 
 	# redirect stdout on quiet mode
 	terminal = sys.stdout
@@ -69,31 +70,30 @@ def fetch_modules(modules, update=False, quiet=False):
 		sys.stdout = devnull
 
 	for index, module in enumerate(modules):
-		
-		# remote modules end with .py
-		if module[-3:] != '.py':
-			module = module + '.py'
 			
 		print "[" + str(index + 1) + "/" + str(len(modules)) + "]",
 		print "Fetching " + module + '...',
 		sys.stdout.flush()
 
+		cached_filepath = os.path.join(kiwi_cache_dir, module + '.' + module_file[:-3] + '.cached')
+		local_filepath = os.path.join(kiwi_local_modules_dir, module, module_file)
+
 		try:
 			# update from cached file
-			if update and kiwi_cache_updates.lower() == 'true' and os.path.isfile(os.path.join(kiwi_cache_dir, module + '.cached')):
-				with open(os.path.join(kiwi_local_modules_dir, module), 'w') as current, open(os.path.join(kiwi_cache_dir, module + '.cached'), 'r') as cached:
+			if update and kiwi_cache_updates.lower() == 'true' and os.path.isfile(cached_filepath):
+				with open(local_filepath, 'w') as current, open(cached_filepath, 'r') as cached:
 					overwrite(current, cached.read())
 
 				print 'Updated'
-				modules_fetched.append(module[:-3])
+				modules_fetched.append(module)
 
 			# get latest module
 			else:
-				latest = get(kiwi_repo_raw + kiwi_repo_modules_dir + module)
+				latest = get(kiwi_repo_raw + kiwi_repo_modules_dir + module + '/' + module_file)
 
 				# update / cache separately if module exists
-				if os.path.isfile(os.path.join(kiwi_local_modules_dir, module)):
-					with open(os.path.join(kiwi_local_modules_dir, module), 'r') as current:
+				if os.path.isfile(local_filepath):
+					with open(local_filepath, 'r') as current:
 						if sha(latest) == sha(current.read()):
 							print 'Up to date'
 						else:
@@ -101,33 +101,33 @@ def fetch_modules(modules, update=False, quiet=False):
 
 								# reopen for writing
 								current.close()
-								current = open(os.path.join(kiwi_local_modules_dir, module), 'w')
+								current = open(local_filepath, 'w')
 								overwrite(current, latest)
 
 								print 'Updated'
-								modules_fetched.append(module[:-3])
+								modules_fetched.append(module)
 							else:
 								if kiwi_cache_updates.lower() == 'true':
-									with open(os.path.join(kiwi_cache_dir, module + '.cached'), 'w') as cached:
+									with open(cached_filepath, 'w') as cached:
 										cached.write(latest)
 
 								print 'Update available'
-								modules_update.append(module[:-3])
+								modules_update.append(module)
 
 				# write module
 				else:
-					with open(os.path.join(kiwi_local_modules_dir, module), 'w') as module_file:
-						module_file.write(latest)
+					with open(local_filepath, 'w') as module_local_file:
+						module_local_file.write(latest)
 						
 					print 'Done'
-					modules_fetched.append(module[:-3])
+					modules_fetched.append(module)
 
 		except requests.exceptions.RequestException as e:
 			report(e, 'download failed')
-			modules_failed.append(module[:-3])
+			modules_failed.append(module)
 		except (IOError, OSError) as e:
 			report(e)
-			modules_failed.append(module[:-3])
+			modules_failed.append(module)
 
 	sys.stdout = terminal
 	return modules_fetched, modules_update, modules_failed
@@ -274,7 +274,7 @@ def main():
 					sys.exit(1)
 				
 		# import module code
-		module = load_source(module_name, os.path.join(kiwi_local_modules_dir, module_name + '.py'))
+		module = load_source(module_name, os.path.join(kiwi_local_modules_dir, module_name, 'client.py'))
 
 		# validate the module
 		if not hasattr(module, 'kiwi_main'):
@@ -303,8 +303,8 @@ def main():
 			)
 
 			# change directory to module directory
-			ensure_directory(kiwi_home_dir + module_name)
-			os.chdir(kiwi_home_dir + module_name)
+			ensure_directory(module.__dict__['kiwi']["module_home"])
+			os.chdir(module.__dict__['kiwi']["module_home"])
 
 			# run the module and log any exceptions coming from it
 			try:
