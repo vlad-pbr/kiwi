@@ -3,15 +3,15 @@
 # Hi!
 #
 # This is a general template for a kiwi module. Comments below will guide you around.
-# You copy this code, edit it, plug it into the module directory (/etc/kiwi/modules by default) and you're done.
+# Copy this code, edit it, plug it into the module directory (/etc/kiwi/modules/<module-name>/client.py by default) and you're done.
 # I tried to keep it as minimal as possible. Have fun!
 #
-# ~ Lonerism
+# ~ Vlad
 
 '''
 This module shows you all of the features kiwi provides to its modules.
 Should you wish to write your own module, use this module's code as a template:
-https://github.com/isLonerism/kiwi/blob/master/etc/kiwi/modules/helloworld.py
+https://github.com/vlad-pbr/kiwi/blob/master/modules/helloworld/client.py
 '''
 
 # this optional variable is a list of kiwi modules that this module utilizes
