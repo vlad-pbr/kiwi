@@ -21,6 +21,11 @@ class Kiwi:
 
 	server = False
 
+	class Runtime:
+		client = "runtime/client.py"
+		server = "runtime/server.py"
+		module = "runtime/module.py"
+
 	# configurable vars
 	class Config:
 		kiwi_repo_modules_dir = "modules/"
@@ -162,14 +167,47 @@ class Kiwi:
 	def say(jibberish, newline=True):
 		print 'kiwi: ' + jibberish + ('\n' if newline else ''),
 
-	@staticmethod
-	def take(module_path):
+	# TODO implement
+	def install(module, to_cache=False, from_cache=False):
+		pass
+
+	def take(self, module_path):
 
 		module_full_path = join(kiwi_home_dir, module_path)
 
-		if not isfile(module_full_path):
-			Kiwi.say("Self sustainability coming soon!")
-			sys.exit(0)
+		if not isfile(join(kiwi_home_dir, module_path)):
+			self.Helper.ensure_directory(join(kiwi_home_dir, "/".join(module_path.split("/")[:-1])))
+
+			runtime_files = [value for attr, value in self.Runtime.__dict__.items() if not attr.startswith("__") and value != module_path]
+
+			# check for runtime updates
+			modules_to_update = []
+			for _file in runtime_files:
+				if isfile(join(kiwi_home_dir, _file)):
+					with open(join(kiwi_home_dir, _file), 'r') as current_file:
+						remote_file = self.Helper.get(join(self.Config.kiwi_repo_raw, _file))
+					
+						if self.Helper.sha(remote_file) != self.Helper.sha(current_file.read()):
+							modules_to_update.append(_file)
+
+							with open(join(self.Config.kiwi_cache_dir, _file.replace("/", "_") + ".cached"), 'w') as cached_file:
+								cached_file.write(remote_file)
+
+			# update outdated modules
+			if modules_to_update:
+				self.say("runtime must be updated.", False)
+
+				if self.Helper.ask("Proceed?", ['y', 'n']) == 'y':
+					for _file in modules_to_update:
+						with open(join(self.Config.kiwi_cache_dir, _file.replace("/", "_") + ".cached"), 'r') as cached_file, open(join(kiwi_home_dir, _file), 'w') as current_file:
+							self.Helper.overwrite(current_file, cached_file.read())
+
+				else:
+					sys.exit(0)
+
+			# get missing module
+			with open(module_full_path, 'w') as module_file:
+				module_file.write(self.Helper.get(join(self.Config.kiwi_repo_raw, module_path)))
 
 		return load_source("module", module_full_path)
 
@@ -177,7 +215,6 @@ class Kiwi:
 
 		module_name = None
 		module_home = None
-		installed_module_list = None
 
 		def __init__(self, name):
 			self.module_name = name
@@ -283,7 +320,7 @@ def main():
 
 	# module execution
 	elif len(sys.argv) > 1 and sys.argv[1][:1] != '-':
-			kiwi.take("runtime/module.py").run(kiwi, sys.argv)
+			kiwi.take(kiwi.Runtime.module).run(kiwi, sys.argv)
 
 	# kiwi execution
 	else:
@@ -302,11 +339,11 @@ def main():
 		# start kiwi server
 		if args.server:
 			kiwi.server = True
-			kiwi.take("runtime/server.py").run(kiwi)
+			kiwi.take(kiwi.Runtime.server).run(kiwi)
 
 		# pass arguments to kiwi client
 		else:
-			kiwi.take("runtime/client.py").run(kiwi, args)
+			kiwi.take(kiwi.Runtime.client).run(kiwi, args)
 
 if __name__ == "__main__":
         main()
