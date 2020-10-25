@@ -6,6 +6,7 @@ import errno
 import traceback
 import sys
 import os
+from enum import Enum
 from json import loads
 from os.path import isfile, join, expanduser
 from hashlib import sha256
@@ -22,9 +23,11 @@ class Kiwi:
 	server = False
 
 	class Runtime:
-		client = "runtime/client.py"
-		server = "runtime/server.py"
-		module = "runtime/module.py"
+
+		class Modules(Enum):
+			Client = "runtime/client.py"
+			Server = "runtime/server.py"
+			Module = "runtime/module.py"
 
 	# configurable vars
 	class Config:
@@ -171,14 +174,15 @@ class Kiwi:
 	def install(module, to_cache=False, from_cache=False):
 		pass
 
-	def take(self, module_path):
+	def take(self, module):
 
+		module_path = module.value
 		module_full_path = join(kiwi_home_dir, module_path)
 
 		if not isfile(join(kiwi_home_dir, module_path)):
 			self.Helper.ensure_directory(join(kiwi_home_dir, "/".join(module_path.split("/")[:-1])))
 
-			runtime_files = [value for attr, value in self.Runtime.__dict__.items() if not attr.startswith("__") and value != module_path]
+			runtime_files = [attr.value for attr in self.Runtime.Modules if attr != module]
 
 			# check for runtime updates
 			modules_to_update = []
@@ -320,7 +324,7 @@ def main():
 
 	# module execution
 	elif len(sys.argv) > 1 and sys.argv[1][:1] != '-':
-			kiwi.take(kiwi.Runtime.module).run(kiwi, sys.argv)
+			kiwi.take(kiwi.Runtime.Modules.Module).run(kiwi, sys.argv)
 
 	# kiwi execution
 	else:
@@ -339,11 +343,11 @@ def main():
 		# start kiwi server
 		if args.server:
 			kiwi.server = True
-			kiwi.take(kiwi.Runtime.server).run(kiwi)
+			kiwi.take(kiwi.Runtime.Modules.Server).run(kiwi)
 
 		# pass arguments to kiwi client
 		else:
-			kiwi.take(kiwi.Runtime.client).run(kiwi, args)
+			kiwi.take(kiwi.Runtime.Modules.Client).run(kiwi, args)
 
 if __name__ == "__main__":
         main()
