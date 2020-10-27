@@ -38,44 +38,43 @@ class Kiwi:
 
 		def run(self, module, *args):
 
-			module_path = self.config.kiwi_repo_runtime_dir + module
-			module_full_path = join(kiwi_home_dir, module_path)
+			assets = Kiwi._Assets(self.config)
+			current_asset = assets.runtime(module)
 
-			if not isfile(join(kiwi_home_dir, module_path)):
-				Kiwi.Helper.ensure_directory(join(kiwi_home_dir, "/".join(module_path.split("/")[:-1])))
+			if not isfile(current_asset.local):
 
-				runtime_files = [self.config.kiwi_repo_runtime_dir + value for value in vars(self.modules).values() if value != module]
+				runtime_assets = [assets.runtime(value) for value in vars(self.modules).values() if value != module]
 
 				# check for runtime updates
-				modules_to_update = []
-				for _file in runtime_files:
-					if isfile(join(kiwi_home_dir, _file)):
-						with open(join(kiwi_home_dir, _file), 'r') as current_file:
-							remote_file = Kiwi.Helper.get(join(self.config.kiwi_repo_raw, _file))
+				assets_to_update = []
+				for asset in runtime_assets:
+					if isfile(asset.local):
+						with open(asset.local, 'r') as current_file:
+							remote_file = Kiwi.Helper.get(asset.remote)
 					
 							if Kiwi.Helper.sha(remote_file) != Kiwi.Helper.sha(current_file.read()):
-								modules_to_update.append(_file)
+								assets_to_update.append(asset)
 
-								with open(join(self.config.kiwi_local_cache_dir, _file.replace("/", "_") + ".cached"), 'w') as cached_file:
+								with open(join(self.config.kiwi_local_cache_dir, asset.local.replace("/", "_") + ".cached"), 'w') as cached_file:
 									cached_file.write(remote_file)
 
 				# update outdated modules
-				if modules_to_update:
+				if assets_to_update:
 					Kiwi.say("runtime must be updated.", False)
 
 					if Kiwi.Helper.ask("Proceed?", ['y', 'n']) == 'y':
-						for _file in modules_to_update:
-							with open(join(self.config.kiwi_local_cache_dir, _file.replace("/", "_") + ".cached"), 'r') as cached_file, open(join(kiwi_home_dir, _file), 'w') as current_file:
+						for asset in assets_to_update:
+							with open(join(self.config.kiwi_local_cache_dir, asset.local.replace("/", "_") + ".cached"), 'r') as cached_file, open(asset.local, 'w') as current_file:
 								Kiwi.Helper.overwrite(current_file, cached_file.read())
 
 					else:
 						sys.exit(0)
 
 				# get missing module
-				with open(module_full_path, 'w') as module_file:
-					module_file.write(Kiwi.Helper.get(join(self.config.kiwi_repo_raw, module_path)))
+				with open(current_asset.local, 'w') as module_file:
+					module_file.write(Kiwi.Helper.get(current_asset.remote))
 
-			load_source("module", module_full_path).run(*args)
+			load_source("module", current_asset.local).run(*args)
 
 	class _Assets:
 
@@ -85,17 +84,15 @@ class Kiwi:
 			self.config = config
 
 		def module(self, name):
-			_file = self.Config.kiwi_side.value
-			
 			return argparse.Namespace(
-				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_modules_dir, name, _file),
-				local = join(self.config.kiwi_local_modules_dir, name, _file)
+				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_modules_dir, name, self.Config.kiwi_side.value),
+				local = join(self.config.kiwi_local_modules_dir, name, self.Config.kiwi_side.value)
 			)
 
 		def runtime(self, module):
 			return argparse.Namespace(
 				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_runtime_dir, module),
-				local = join(kiwi_home_dir, self.config.kiwi_repo_runtime_dir, module)
+				local = join(self.config.kiwi_local_runtime_dir, module)
 			)
 
 	class Side(Enum):
@@ -104,13 +101,16 @@ class Kiwi:
 
 	# configurable vars
 	class Config:
+		kiwi_side = None
+
 		kiwi_repo_modules_dir = "modules/"
 		kiwi_repo_runtime_dir = "runtime/"
 		kiwi_repo_api = "https://api.github.com/repos/vlad-pbr/kiwi/contents/"
 		kiwi_repo_raw = "https://raw.githubusercontent.com/vlad-pbr/kiwi/master/"
+
 		kiwi_local_modules_dir = join(kiwi_home_dir, "modules")
+		kiwi_local_runtime_dir = join(kiwi_home_dir, "runtime")
 		kiwi_local_cache_dir = None
-		kiwi_side = None
 
 	def __init__(self, config_path=None, server=False):
 
@@ -147,6 +147,7 @@ class Kiwi:
 		# ensure kiwi directories exist
 		self.Helper.ensure_directory(kiwi_home_dir)
 		self.Helper.ensure_directory(self.Config.kiwi_local_modules_dir)
+		self.Helper.ensure_directory(self.Config.kiwi_local_runtime_dir)
 
 	def __del__(self):
 		if self.Config.kiwi_local_cache_dir is not None:
