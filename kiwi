@@ -6,7 +6,6 @@ import errno
 import traceback
 import sys
 import os
-from enum import Enum
 from json import loads
 from os.path import isfile, join, expanduser
 from hashlib import sha256
@@ -27,23 +26,24 @@ class Kiwi:
 
 		config = None
 
-		class Modules(Enum):
-			Client = "client.py"
-			Server = "server.py"
-			Module = "module.py"
+		modules = argparse.Namespace(
+			client = "client.py",
+			server = "server.py",
+			module = "module.py"
+		)
 
 		def __init__(self, config):
 			self.config = config
 
 		def run(self, module, *args):
 
-			module_path = module.value
+			module_path = "runtime/" + module
 			module_full_path = join(kiwi_home_dir, module_path)
 
 			if not isfile(join(kiwi_home_dir, module_path)):
 				Kiwi.Helper.ensure_directory(join(kiwi_home_dir, "/".join(module_path.split("/")[:-1])))
 
-				runtime_files = [attr.value for attr in self.Modules if attr != module]
+				runtime_files = ["runtime/" + value for value in vars(self.modules).values() if value != module]
 
 				# check for runtime updates
 				modules_to_update = []
@@ -84,15 +84,17 @@ class Kiwi:
 			self.config = config
 
 		def module(self, name):
+			side = ("server" if self.config.kiwi_server else "client") + ".py"
+			
 			return argparse.Namespace(
-				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_modules_dir, name, "server.py" if self.config.kiwi_server else "client.py"),
-				local = join(self.config.kiwi_local_modules_dir, name, "server.py" if self.config.kiwi_server else "client.py")
+				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_modules_dir, name, side),
+				local = join(self.config.kiwi_local_modules_dir, name, side)
 			)
 
 		def runtime(self, module):
 			return argparse.Namespace(
-				remote = join(self.config.kiwi_repo_raw, "runtime", module.value),
-				local = join(kiwi_home_dir, "runtime", module.value)
+				remote = join(self.config.kiwi_repo_raw, "runtime", module),
+				local = join(kiwi_home_dir, "runtime", module)
 			)
 
 	# configurable vars
@@ -368,7 +370,7 @@ def main():
 	# module execution
 	elif len(sys.argv) > 1 and sys.argv[1][:1] != '-':
 		kiwi.Config.kiwi_server = False
-		kiwi.runtime.run(kiwi.runtime.Modules.Module, kiwi, sys.argv)
+		kiwi.runtime.run(kiwi.runtime.modules.module, kiwi, sys.argv)
 
 	# kiwi execution
 	else:
@@ -387,12 +389,12 @@ def main():
 		# start kiwi server
 		if args.server:
 			kiwi.Config.kiwi_server = True
-			kiwi.runtime.run(kiwi.runtime.Modules.Server, kiwi)
+			kiwi.runtime.run(kiwi.runtime.modules.server, kiwi)
 
 		# pass arguments to kiwi client
 		else:
 			kiwi.Config.kiwi_server = False
-			kiwi.runtime.run(kiwi.runtime.Modules.Client, kiwi, args)
+			kiwi.runtime.run(kiwi.runtime.modules.client, kiwi, args)
 
 if __name__ == "__main__":
         main()
