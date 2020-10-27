@@ -25,37 +25,29 @@ class Kiwi:
 
 	class _Runtime:
 
-		config = None
+		kiwi = None
 
 		class Modules(Enum):
 			Client = "client.py"
 			Server = "server.py"
 			Module = "module.py"
 
-		def __init__(self, config):
-			self.config = config
+		def __init__(self, kiwi):
+			self.kiwi = kiwi
 
 		def run(self, module, *args):
 
-			assets = Kiwi._Assets(self.config)
-			current_asset = assets.runtime(module)
+			current_asset = self.kiwi.assets.runtime(module)
 
 			if not isfile(current_asset.local):
 
-				runtime_assets = [assets.runtime(asset) for asset in self.Modules if asset != module]
+				runtime_assets = [self.kiwi.assets.runtime(asset) for asset in self.Modules if asset != module]
 
 				# check for runtime updates
 				assets_to_update = []
 				for asset in runtime_assets:
-					if isfile(asset.local):
-						with open(asset.local, 'r') as current_file:
-							remote_file = Kiwi.Helper.get(asset.remote)
-					
-							if Kiwi.Helper.sha(remote_file) != Kiwi.Helper.sha(current_file.read()):
-								assets_to_update.append(asset)
-
-								with open(asset.cache, 'w') as cached_file:
-									cached_file.write(remote_file)
+					if isfile(asset.local) and not self.kiwi.up_to_date(asset):
+						assets_to_update.append(asset)
 
 				# update outdated modules
 				if assets_to_update:
@@ -144,8 +136,8 @@ class Kiwi:
 			self.Helper.ensure_directory(self.Config.kiwi_local_cache_dir)
 
 		# init inner classes
-		self.runtime = self._Runtime(self.Config)
 		self.assets = self._Assets(self.Config)
+		self.runtime = self._Runtime(self)
 
 		# ensure kiwi directories exist
 		for directory in [
@@ -256,6 +248,20 @@ class Kiwi:
 		sys.stdout = terminal
 		devnull.close()
 		return modules_fetched, modules_update, modules_failed
+
+	def up_to_date(self, asset):
+		remote_data = Kiwi.Helper.get(asset.remote)
+
+		# cache remote file
+		with open(asset.cache, 'w') as cache:
+			Kiwi.Helper.overwrite(cache, remote_data)
+
+		# compare remote to local
+		if isfile(asset.local):
+			with open(asset.local, 'r') as local:
+				return Kiwi.Helper.sha(remote_data) == Kiwi.Helper.sha(local.read())
+
+		return False
 
 	def install(self, asset, to_cache=False):
 
