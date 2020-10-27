@@ -107,15 +107,27 @@ class Kiwi:
 		kiwi_local_cache_dir = None
 		kiwi_server = False
 
-	def __init__(self, config_path=None):
+	def __init__(self, config_path=None, server=False):
+
+		default_config_path = join(kiwi_home_dir, "kiwi.conf")
+
+		# determine config file existence
+		if config_path and not isfile(config_path):
+			self.say(config_path + " does not exist")
+			sys.exit(1)
+		elif isfile(default_config_path):
+			config_path = default_config_path
 
 		# parse optional config
-		if config_path and isfile(config_path):
+		if config_path:
 			config = self.Helper.parse_config(config_path)
 
 			# overwrite configurable variables if present
 			for var in [attr for attr in self.Config.__dict__ if not attr.startswith("__")]:
 				self.Config.__dict__[var] = config.get(var, self.Config.__dict__[var])
+
+		# set server bool
+		self.Config.kiwi_server = server
 
 		# init cache directory if needed
 		if self.Config.kiwi_local_cache_dir is None:
@@ -352,9 +364,6 @@ def main():
 	* To run a module, use 'kiwi [module]'
 	"""
 
-	# init kiwi config
-	kiwi = Kiwi(join(kiwi_home_dir, "kiwi.conf"))
-
 	# no arguments passed
 	if len(sys.argv) == 1:
 
@@ -363,7 +372,7 @@ def main():
 
 	# module execution
 	elif len(sys.argv) > 1 and sys.argv[1][:1] != '-':
-		kiwi.Config.kiwi_server = False
+		kiwi = Kiwi()
 		kiwi.runtime.run(kiwi.runtime.modules.module, kiwi, sys.argv)
 
 	# kiwi execution
@@ -378,16 +387,17 @@ def main():
 		group.add_argument('-u', '--update-modules', nargs='*')
 		group.add_argument('-U', '--self-update', action='store_true')
 		group.add_argument('-s', '--server', action='store_true')
+		group.add_argument('-c', '--config', type=str)
 		args = parser.parse_args()
 
 		# start kiwi server
 		if args.server:
-			kiwi.Config.kiwi_server = True
+			kiwi = Kiwi(args.config, True)
 			kiwi.runtime.run(kiwi.runtime.modules.server, kiwi)
 
 		# pass arguments to kiwi client
 		else:
-			kiwi.Config.kiwi_server = False
+			kiwi = Kiwi(args.config)
 			kiwi.runtime.run(kiwi.runtime.modules.client, kiwi, args)
 
 if __name__ == "__main__":
