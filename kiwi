@@ -55,7 +55,7 @@ class Kiwi:
 							if Kiwi.Helper.sha(remote_file) != Kiwi.Helper.sha(current_file.read()):
 								modules_to_update.append(_file)
 
-								with open(join(self.config.kiwi_cache_dir, _file.replace("/", "_") + ".cached"), 'w') as cached_file:
+								with open(join(self.config.kiwi_local_cache_dir, _file.replace("/", "_") + ".cached"), 'w') as cached_file:
 									cached_file.write(remote_file)
 
 				# update outdated modules
@@ -64,7 +64,7 @@ class Kiwi:
 
 					if Kiwi.Helper.ask("Proceed?", ['y', 'n']) == 'y':
 						for _file in modules_to_update:
-							with open(join(self.config.kiwi_cache_dir, _file.replace("/", "_") + ".cached"), 'r') as cached_file, open(join(kiwi_home_dir, _file), 'w') as current_file:
+							with open(join(self.config.kiwi_local_cache_dir, _file.replace("/", "_") + ".cached"), 'r') as cached_file, open(join(kiwi_home_dir, _file), 'w') as current_file:
 								Kiwi.Helper.overwrite(current_file, cached_file.read())
 
 					else:
@@ -104,7 +104,7 @@ class Kiwi:
 		kiwi_repo_api = "https://api.github.com/repos/vlad-pbr/kiwi/contents/"
 		kiwi_repo_raw = "https://raw.githubusercontent.com/vlad-pbr/kiwi/master/"
 		kiwi_local_modules_dir = join(kiwi_home_dir, "modules")
-		kiwi_cache_dir = None
+		kiwi_local_cache_dir = None
 		kiwi_server = False
 
 	def __init__(self, config_path=None):
@@ -118,10 +118,10 @@ class Kiwi:
 				self.Config.__dict__[var] = config.get(var, self.Config.__dict__[var])
 
 		# init cache directory if needed
-		if self.Config.kiwi_cache_dir is None:
-			self.Config.kiwi_cache_dir = mkdtemp()
+		if self.Config.kiwi_local_cache_dir is None:
+			self.Config.kiwi_local_cache_dir = mkdtemp()
 		else:
-			self.Helper.ensure_directory(self.Config.kiwi_cache_dir)
+			self.Helper.ensure_directory(self.Config.kiwi_local_cache_dir)
 
 		# init inner classes
 		self.runtime = self._Runtime(self.Config)
@@ -132,10 +132,10 @@ class Kiwi:
 		self.Helper.ensure_directory(self.Config.kiwi_local_modules_dir)
 
 	def __del__(self):
-		if self.Config.kiwi_cache_dir is not None:
-			rmtree(self.Config.kiwi_cache_dir)
+		if self.Config.kiwi_local_cache_dir is not None:
+			rmtree(self.Config.kiwi_local_cache_dir)
 
-		self.Config.kiwi_cache_dir = None
+		self.Config.kiwi_local_cache_dir = None
 
 	def get_installed_module_list(self):
 		return [module for module in os.listdir(self.Config.kiwi_local_modules_dir)]
@@ -176,7 +176,7 @@ class Kiwi:
 			sys.stdout.flush()
 
 			self.Helper.ensure_directory(join(self.Config.kiwi_local_modules_dir, module))
-			cached_filepath = join(self.Config.kiwi_cache_dir, module + '.' + module_file[:-3] + '.cached')
+			cached_filepath = join(self.Config.kiwi_local_cache_dir, module + '.' + module_file[:-3] + '.cached')
 			local_filepath = join(self.Config.kiwi_local_modules_dir, module, module_file)
 
 			try:
@@ -235,8 +235,8 @@ class Kiwi:
 
 	def install(self, asset, to_cache=False):
 
-		cached_path = join(self.Config.kiwi_cache_dir, asset.local.replace("/", "_")) if self.Config.kiwi_cache_dir else None
-		to_cache = to_cache and self.Config.kiwi_cache_dir
+		cached_path = join(self.Config.kiwi_local_cache_dir, asset.local.replace("/", "_")) if self.Config.kiwi_local_cache_dir else None
+		to_cache = to_cache and self.Config.kiwi_local_cache_dir
 		is_cached = cached_path and isfile(cached_path)
 		local_path = join(kiwi_home_dir, asset.local)
 
