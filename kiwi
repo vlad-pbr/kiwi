@@ -27,11 +27,10 @@ class Kiwi:
 
 		config = None
 
-		modules = argparse.Namespace(
-			client = "client.py",
-			server = "server.py",
-			module = "module.py"
-		)
+		class Modules(Enum):
+			Client = "client.py"
+			Server = "server.py"
+			Module = "module.py"
 
 		def __init__(self, config):
 			self.config = config
@@ -43,7 +42,7 @@ class Kiwi:
 
 			if not isfile(current_asset.local):
 
-				runtime_assets = [assets.runtime(value) for value in vars(self.modules).values() if value != module]
+				runtime_assets = [assets.runtime(asset) for asset in self.Modules if asset != module]
 
 				# check for runtime updates
 				assets_to_update = []
@@ -91,8 +90,8 @@ class Kiwi:
 
 		def runtime(self, module):
 			return argparse.Namespace(
-				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_runtime_dir, module),
-				local = join(self.config.kiwi_local_runtime_dir, module)
+				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_runtime_dir, module.value),
+				local = join(self.config.kiwi_local_runtime_dir, module.value)
 			)
 
 	class Side(Enum):
@@ -382,7 +381,7 @@ def main():
 	# module execution
 	elif len(sys.argv) > 1 and sys.argv[1][:1] != '-':
 		kiwi = Kiwi()
-		kiwi.runtime.run(kiwi.runtime.modules.module, kiwi, sys.argv)
+		kiwi.runtime.run(kiwi.runtime.Modules.Module, kiwi, sys.argv)
 
 	# kiwi execution
 	else:
@@ -402,12 +401,12 @@ def main():
 		# start kiwi server
 		if args.server:
 			kiwi = Kiwi(args.config, True)
-			kiwi.runtime.run(kiwi.runtime.modules.server, kiwi)
+			kiwi.runtime.run(kiwi.runtime.Modules.Server, kiwi)
 
 		# pass arguments to kiwi client
 		else:
 			kiwi = Kiwi(args.config)
-			kiwi.runtime.run(kiwi.runtime.modules.client, kiwi, args)
+			kiwi.runtime.run(kiwi.runtime.Modules.Client, kiwi, args)
 
 if __name__ == "__main__":
         main()
