@@ -103,7 +103,6 @@ class Kiwi:
 		kiwi_repo_api = "https://api.github.com/repos/isLonerism/kiwi/contents/"
 		kiwi_repo_raw = "https://raw.githubusercontent.com/isLonerism/kiwi/master/"
 		kiwi_local_modules_dir = join(kiwi_home_dir, "modules")
-		kiwi_cache_updates = 'true'
 		kiwi_cache_dir = None
 		kiwi_server = False
 
@@ -117,13 +116,8 @@ class Kiwi:
 			for var in [attr for attr in self.Config.__dict__ if not attr.startswith("__")]:
 				self.Config.__dict__[var] = config.get(var, self.Config.__dict__[var])
 
-		# set cache updates string to boolean
-		self.Config.kiwi_cache_updates = self.Config.kiwi_cache_updates.lower() == 'true'
-
 		# init cache directory if needed
-		if self.Config.kiwi_cache_updates is None:
-			self.Config.kiwi_cache_dir = None
-		elif self.Config.kiwi_cache_dir is None:
+		if self.Config.kiwi_cache_dir is None:
 			self.Config.kiwi_cache_dir = mkdtemp()
 		else:
 			self.Helper.ensure_directory(self.Config.kiwi_cache_dir)
@@ -186,7 +180,7 @@ class Kiwi:
 
 			try:
 				# update from cached file
-				if update and self.Config.kiwi_cache_updates and isfile(cached_filepath):
+				if update and isfile(cached_filepath):
 					with open(local_filepath, 'w') as current, open(cached_filepath, 'r') as cached:
 						self.Helper.overwrite(current, cached.read())
 
@@ -213,9 +207,8 @@ class Kiwi:
 									print 'Updated'
 									modules_fetched.append(module)
 								else:
-									if self.Config.kiwi_cache_updates:
-										with open(cached_filepath, 'w') as cached:
-											cached.write(latest)
+									with open(cached_filepath, 'w') as cached:
+										cached.write(latest)
 
 									print 'Update available'
 									modules_update.append(module)
