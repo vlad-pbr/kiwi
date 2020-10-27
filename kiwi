@@ -145,9 +145,12 @@ class Kiwi:
 		self.assets = self._Assets(self.Config)
 
 		# ensure kiwi directories exist
-		self.Helper.ensure_directory(kiwi_home_dir)
-		self.Helper.ensure_directory(self.Config.kiwi_local_modules_dir)
-		self.Helper.ensure_directory(self.Config.kiwi_local_runtime_dir)
+		for directory in [
+			kiwi_home_dir,
+			self.Config.kiwi_local_modules_dir,
+			self.Config.kiwi_local_runtime_dir
+		]:
+			self.Helper.ensure_directory(directory)
 
 	def __del__(self):
 		if self.Config.kiwi_local_cache_dir is not None:
