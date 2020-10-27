@@ -100,8 +100,8 @@ class Kiwi:
 	# configurable vars
 	class Config:
 		kiwi_repo_modules_dir = "modules/"
-		kiwi_repo_api = "https://api.github.com/repos/isLonerism/kiwi/contents/"
-		kiwi_repo_raw = "https://raw.githubusercontent.com/isLonerism/kiwi/master/"
+		kiwi_repo_api = "https://api.github.com/repos/vlad-pbr/kiwi/contents/"
+		kiwi_repo_raw = "https://raw.githubusercontent.com/vlad-pbr/kiwi/master/"
 		kiwi_local_modules_dir = join(kiwi_home_dir, "modules")
 		kiwi_cache_dir = None
 		kiwi_server = False
