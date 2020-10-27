@@ -37,13 +37,13 @@ class Kiwi:
 
 		def run(self, module, *args):
 
-			module_path = "runtime/" + module
+			module_path = self.config.kiwi_repo_runtime_dir + module
 			module_full_path = join(kiwi_home_dir, module_path)
 
 			if not isfile(join(kiwi_home_dir, module_path)):
 				Kiwi.Helper.ensure_directory(join(kiwi_home_dir, "/".join(module_path.split("/")[:-1])))
 
-				runtime_files = ["runtime/" + value for value in vars(self.modules).values() if value != module]
+				runtime_files = [self.config.kiwi_repo_runtime_dir + value for value in vars(self.modules).values() if value != module]
 
 				# check for runtime updates
 				modules_to_update = []
@@ -93,13 +93,14 @@ class Kiwi:
 
 		def runtime(self, module):
 			return argparse.Namespace(
-				remote = join(self.config.kiwi_repo_raw, "runtime", module),
-				local = join(kiwi_home_dir, "runtime", module)
+				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_runtime_dir, module),
+				local = join(kiwi_home_dir, self.config.kiwi_repo_runtime_dir, module)
 			)
 
 	# configurable vars
 	class Config:
 		kiwi_repo_modules_dir = "modules/"
+		kiwi_repo_runtime_dir = "runtime/"
 		kiwi_repo_api = "https://api.github.com/repos/vlad-pbr/kiwi/contents/"
 		kiwi_repo_raw = "https://raw.githubusercontent.com/vlad-pbr/kiwi/master/"
 		kiwi_local_modules_dir = join(kiwi_home_dir, "modules")
