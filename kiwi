@@ -46,7 +46,7 @@ class Kiwi:
 				# check for runtime updates
 				assets_to_update = []
 				for asset in runtime_assets:
-					if isfile(asset.local) and not self.kiwi.up_to_date(asset):
+					if isfile(asset.local) and not self.kiwi.assets.up_to_date(asset):
 						assets_to_update.append(asset)
 
 				# update outdated modules
@@ -89,6 +89,20 @@ class Kiwi:
 		def _with_cache(self, asset):
 			asset.cache = join(self.config.kiwi_local_cache_dir, asset.local.replace("/", "_"))
 			return asset
+
+		def up_to_date(self, asset):
+			remote_data = Kiwi.Helper.get(asset.remote)
+
+			# cache remote file
+			with open(asset.cache, 'w') as cache:
+				Kiwi.Helper.overwrite(cache, remote_data)
+
+			# compare remote to local
+			if isfile(asset.local):
+				with open(asset.local, 'r') as local:
+					return Kiwi.Helper.sha(remote_data) == Kiwi.Helper.sha(local.read())
+
+			return False
 
 	class Side(Enum):
 		Client = "client.py"
@@ -248,20 +262,6 @@ class Kiwi:
 		sys.stdout = terminal
 		devnull.close()
 		return modules_fetched, modules_update, modules_failed
-
-	def up_to_date(self, asset):
-		remote_data = Kiwi.Helper.get(asset.remote)
-
-		# cache remote file
-		with open(asset.cache, 'w') as cache:
-			Kiwi.Helper.overwrite(cache, remote_data)
-
-		# compare remote to local
-		if isfile(asset.local):
-			with open(asset.local, 'r') as local:
-				return Kiwi.Helper.sha(remote_data) == Kiwi.Helper.sha(local.read())
-
-		return False
 
 	def install(self, asset, to_cache=False):
 
