@@ -6,6 +6,7 @@ import errno
 import traceback
 import sys
 import os
+from enum import Enum
 from json import loads
 from os.path import isfile, join, expanduser
 from hashlib import sha256
@@ -84,11 +85,11 @@ class Kiwi:
 			self.config = config
 
 		def module(self, name):
-			side = ("server" if self.config.kiwi_server else "client") + ".py"
+			_file = self.Config.kiwi_side.value
 			
 			return argparse.Namespace(
-				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_modules_dir, name, side),
-				local = join(self.config.kiwi_local_modules_dir, name, side)
+				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_modules_dir, name, _file),
+				local = join(self.config.kiwi_local_modules_dir, name, _file)
 			)
 
 		def runtime(self, module):
@@ -96,6 +97,10 @@ class Kiwi:
 				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_runtime_dir, module),
 				local = join(kiwi_home_dir, self.config.kiwi_repo_runtime_dir, module)
 			)
+
+	class Side(Enum):
+		Client = "client.py"
+		Server = "server.py"
 
 	# configurable vars
 	class Config:
@@ -105,7 +110,7 @@ class Kiwi:
 		kiwi_repo_raw = "https://raw.githubusercontent.com/vlad-pbr/kiwi/master/"
 		kiwi_local_modules_dir = join(kiwi_home_dir, "modules")
 		kiwi_local_cache_dir = None
-		kiwi_server = False
+		kiwi_side = None
 
 	def __init__(self, config_path=None, server=False):
 
@@ -127,7 +132,7 @@ class Kiwi:
 				self.Config.__dict__[var] = config.get(var, self.Config.__dict__[var])
 
 		# set server bool
-		self.Config.kiwi_server = server
+		self.Config.kiwi_side = self.Side.Server if server else self.Side.Client
 
 		# init cache directory if needed
 		if self.Config.kiwi_local_cache_dir is None:
@@ -173,7 +178,7 @@ class Kiwi:
 		modules_fetched = []
 		modules_update = []
 		modules_failed = []
-		module_file = ('server' if self.Config.kiwi_server else 'client') + '.py'
+		module_file = self.Config.kiwi_side.value
 
 		# redirect stdout on quiet mode
 		terminal = sys.stdout
