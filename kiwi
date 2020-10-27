@@ -54,7 +54,7 @@ class Kiwi:
 							if Kiwi.Helper.sha(remote_file) != Kiwi.Helper.sha(current_file.read()):
 								assets_to_update.append(asset)
 
-								with open(join(self.config.kiwi_local_cache_dir, asset.local.replace("/", "_") + ".cached"), 'w') as cached_file:
+								with open(asset.cache, 'w') as cached_file:
 									cached_file.write(remote_file)
 
 				# update outdated modules
@@ -63,7 +63,7 @@ class Kiwi:
 
 					if Kiwi.Helper.ask("Proceed?", ['y', 'n']) == 'y':
 						for asset in assets_to_update:
-							with open(join(self.config.kiwi_local_cache_dir, asset.local.replace("/", "_") + ".cached"), 'r') as cached_file, open(asset.local, 'w') as current_file:
+							with open(asset.cache, 'r') as cached_file, open(asset.local, 'w') as current_file:
 								Kiwi.Helper.overwrite(current_file, cached_file.read())
 
 					else:
@@ -83,16 +83,20 @@ class Kiwi:
 			self.config = config
 
 		def module(self, name):
-			return argparse.Namespace(
+			return self._with_cache(argparse.Namespace(
 				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_modules_dir, name, self.Config.kiwi_side.value),
 				local = join(self.config.kiwi_local_modules_dir, name, self.Config.kiwi_side.value)
-			)
+			))
 
 		def runtime(self, module):
-			return argparse.Namespace(
+			return self._with_cache(argparse.Namespace(
 				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_runtime_dir, module.value),
 				local = join(self.config.kiwi_local_runtime_dir, module.value)
-			)
+			))
+
+		def _with_cache(self, asset):
+			asset.cache = join(self.config.kiwi_local_cache_dir, asset.local.replace("/", "_"))
+			return asset
 
 	class Side(Enum):
 		Client = "client.py"
