@@ -160,7 +160,7 @@ class Kiwi:
 		modules_fetched = []
 		modules_update = []
 		modules_failed = []
-		module_file = ('server' if self.server else 'client') + '.py'
+		module_file = ('server' if self.Config.kiwi_server else 'client') + '.py'
 
 		# redirect stdout on quiet mode
 		terminal = sys.stdout
