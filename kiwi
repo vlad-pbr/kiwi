@@ -20,17 +20,17 @@ kiwi_home_dir = join(expanduser("~"), '.kiwi')
 
 class Kiwi:
 
-	server = False
 	runtime = None
+	assets = None
 
 	class _Runtime:
 
 		config = None
 
 		class Modules(Enum):
-			Client = "runtime/client.py"
-			Server = "runtime/server.py"
-			Module = "runtime/module.py"
+			Client = "client.py"
+			Server = "server.py"
+			Module = "module.py"
 
 		def __init__(self, config):
 			self.config = config
@@ -74,8 +74,26 @@ class Kiwi:
 				with open(module_full_path, 'w') as module_file:
 					module_file.write(Kiwi.Helper.get(join(self.config.kiwi_repo_raw, module_path)))
 
-			# return load_source("module", module_full_path)
 			load_source("module", module_full_path).run(*args)
+
+	class _Assets:
+
+		config = None
+
+		def __init__(self, config):
+			self.config = config
+
+		def module(self, name):
+			return argparse.Namespace(
+				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_modules_dir, name, "server.py" if self.config.kiwi_server else "client.py"),
+				local = join(self.config.kiwi_local_modules_dir, name, "server.py" if self.config.kiwi_server else "client.py")
+			)
+
+		def runtime(self, module):
+			return argparse.Namespace(
+				remote = join(self.config.kiwi_repo_raw, "runtime", module.value),
+				local = join(kiwi_home_dir, "runtime", module.value)
+			)
 
 	# configurable vars
 	class Config:
@@ -85,6 +103,7 @@ class Kiwi:
 		kiwi_local_modules_dir = join(kiwi_home_dir, "modules")
 		kiwi_cache_updates = 'true'
 		kiwi_cache_dir = None
+		kiwi_server = False
 
 	def __init__(self, config_path=None):
 
@@ -107,8 +126,9 @@ class Kiwi:
 		else:
 			self.Helper.ensure_directory(self.Config.kiwi_cache_dir)
 
-		# init runtime class
+		# init inner classes
 		self.runtime = self._Runtime(self.Config)
+		self.assets = self._Assets(self.Config)
 
 		# ensure kiwi directories exist
 		self.Helper.ensure_directory(kiwi_home_dir)
@@ -217,13 +237,26 @@ class Kiwi:
 		devnull.close()
 		return modules_fetched, modules_update, modules_failed
 
+	def install(self, asset, to_cache=False):
+
+		cached_path = join(self.Config.kiwi_cache_dir, asset.local.replace("/", "_")) if self.Config.kiwi_cache_dir else None
+		to_cache = to_cache and self.Config.kiwi_cache_dir
+		is_cached = cached_path and isfile(cached_path)
+		local_path = join(kiwi_home_dir, asset.local)
+
+		Kiwi.Helper.ensure_directory('/'.join(local_path.split("/")[:-1]))
+
+		if not is_cached:
+			with open(cached_path if to_cache else local_path, "w") as target_file:
+				Kiwi.Helper.overwrite(target_file, Kiwi.Helper.get(asset.remote))
+
+		else:
+			with open(cached_path, "r") as cached_file, open(local_path, "w") as target_file:
+				Kiwi.Helper.overwrite(target_file, cached_file.read())
+
 	@staticmethod
 	def say(jibberish, newline=True):
 		print 'kiwi: ' + jibberish + ('\n' if newline else ''),
-
-	# TODO implement
-	def install(module, to_cache=False, from_cache=False):
-		pass
 
 	class Helper:
 
@@ -334,6 +367,7 @@ def main():
 
 	# module execution
 	elif len(sys.argv) > 1 and sys.argv[1][:1] != '-':
+		kiwi.Config.kiwi_server = False
 		kiwi.runtime.run(kiwi.runtime.Modules.Module, kiwi, sys.argv)
 
 	# kiwi execution
@@ -352,11 +386,12 @@ def main():
 
 		# start kiwi server
 		if args.server:
-			kiwi.server = True
+			kiwi.Config.kiwi_server = True
 			kiwi.runtime.run(kiwi.runtime.Modules.Server, kiwi)
 
 		# pass arguments to kiwi client
 		else:
+			kiwi.Config.kiwi_server = False
 			kiwi.runtime.run(kiwi.runtime.Modules.Client, kiwi, args)
 
 if __name__ == "__main__":
