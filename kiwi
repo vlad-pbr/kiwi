@@ -38,31 +38,37 @@ class Kiwi:
 
 			current_asset = self.assets.runtime(module)
 
-			if not isfile(current_asset.local):
+			if not isfile(current_asset.local) and not self.update("runtime must be updated"):
+				sys.exit(0)
 
-				runtime_assets = [self.assets.runtime(asset) for asset in self.Modules if asset != module]
-
-				# check for runtime updates
-				assets_to_update = []
-				for asset in runtime_assets:
-					if isfile(asset.local) and not self.assets.up_to_date(asset):
-						assets_to_update.append(asset)
-
-				# update outdated modules
-				if assets_to_update:
-					Kiwi.say("runtime must be updated.", False)
-
-					if Kiwi.Helper.ask("Proceed?", ['y', 'n']) == 'y':
-						for asset in assets_to_update:
-							self.assets.install(asset)
-
-					else:
-						sys.exit(0)
-
-				# install missing module
-				self.assets.install(current_asset)
+			# install missing module
+			self.assets.install(current_asset)
 
 			load_source("module", current_asset.local).run(*args)
+
+		def update(self, message):
+		
+			runtime_assets = [self.assets.runtime(asset) for asset in self.Modules if isfile(self.assets.runtime(asset).local)]
+			runtime_assets.append(self.assets.kiwi())
+
+			# check for runtime updates
+			assets_to_update = []
+			for asset in runtime_assets:
+				if isfile(asset.local) and not self.assets.up_to_date(asset):
+					assets_to_update.append(asset)
+
+			# update outdated runtime modules
+			if assets_to_update:
+				Kiwi.say(message + ".", False)
+
+				if Kiwi.Helper.ask("Proceed?", ['y', 'n']) == 'y':
+					for asset in assets_to_update:
+						self.assets.install(asset)
+
+				else:
+					return False
+
+			return True
 
 	class _Assets:
 
@@ -87,6 +93,12 @@ class Kiwi:
 			return self._with_cache(argparse.Namespace(
 				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_runtime_dir, module.value),
 				local = join(self.config.kiwi_local_runtime_dir, module.value)
+			))
+
+		def kiwi(self):
+			return self._with_cache(argparse.Namespace(
+				remote = join(self.config.kiwi_repo_raw, "kiwi"),
+				local = os.path.abspath(__file__)
 			))
 
 		def _with_cache(self, asset):
@@ -432,6 +444,7 @@ def main():
 		# start kiwi server
 		if args.server and len(sys.argv) is 2:
 			kiwi.runtime.run(kiwi.runtime.Modules.Server, kiwi)
+			kiwi.update()
 
 		# pass arguments to kiwi client
 		else:

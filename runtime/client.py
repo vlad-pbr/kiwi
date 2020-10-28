@@ -78,35 +78,8 @@ def run(kiwi, args):
 	
 	# kiwi self update
 	elif args.self_update:
-		latest = False
-		latest_kiwi = None
 
-		try:
-			with open(os.path.abspath(__file__), 'r') as current_kiwi:
-				latest_kiwi = kiwi.Helper.get(os.path.join(kiwi.Config.kiwi_repo_raw, 'usr/bin/kiwi'))
-
-				if kiwi.Helper.sha(latest_kiwi) == kiwi.Helper.sha(current_kiwi.read()):
-					kiwi.say("I'm up to date")
-					latest = True
-				else:
-					kiwi.say("I have an update.", False)
-
-		except requests.exceptions.RequestException as e:
-			kiwi.Helper.report(e, 'could not fetch latest version of kiwi', True)
-		except IOError as e:
-			kiwi.Helper.report(e, 'could not open {} for reading'.format(os.path.abspath(__file__)), True)
-
-		if not latest:
-			if kiwi.Helper.ask('Proceed?', ['y', 'n']) == 'y':
-				try:
-					with open(os.path.abspath(__file__), 'w') as current_kiwi:
-						kiwi.say("Updating...", False)
-						sys.stdout.flush()
-						kiwi.Helper.overwrite(current_kiwi, latest_kiwi)
-						print "Done!"
-
-				except IOError as e:
-					kiwi.Helper.report(e, 'could not open {} for writing'.format(os.path.abspath(__file__)), True)
+		kiwi.runtime.update("I have an update")
 
 if __name__ == "__main__":
         main()
