@@ -450,7 +450,6 @@ def main():
 		# start kiwi server
 		if args.server and len(sys.argv) is 2:
 			kiwi.runtime.run(kiwi.runtime.Modules.Server, kiwi)
-			kiwi.update()
 
 		# pass arguments to kiwi client
 		else:
