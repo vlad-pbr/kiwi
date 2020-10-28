@@ -74,8 +74,8 @@ class Kiwi:
 
 		def module(self, name):
 			return self._with_cache(argparse.Namespace(
-				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_modules_dir, name, self.Config.kiwi_side.value),
-				local = join(self.config.kiwi_local_modules_dir, name, self.Config.kiwi_side.value)
+				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_modules_dir, name, self.config.kiwi_side.value),
+				local = join(self.config.kiwi_local_modules_dir, name, self.config.kiwi_side.value)
 			))
 
 		def runtime(self, module):
@@ -205,7 +205,6 @@ class Kiwi:
 		modules_fetched = []
 		modules_update = []
 		modules_failed = []
-		module_file = self.Config.kiwi_side.value
 
 		# redirect stdout on quiet mode
 		terminal = sys.stdout
@@ -219,50 +218,41 @@ class Kiwi:
 			print "Fetching " + module + '...',
 			sys.stdout.flush()
 
-			self.Helper.ensure_directory(join(self.Config.kiwi_local_modules_dir, module))
-			cached_filepath = join(self.Config.kiwi_local_cache_dir, module + '.' + module_file[:-3] + '.cached')
-			local_filepath = join(self.Config.kiwi_local_modules_dir, module, module_file)
+			asset = self.runtime.assets.module(module)
 
 			try:
-				# update from cached file
-				if update and isfile(cached_filepath):
-					with open(local_filepath, 'w') as current, open(cached_filepath, 'r') as cached:
-						self.Helper.overwrite(current, cached.read())
 
-					print 'Updated'
-					modules_fetched.append(module)
+				# updating module
+				if update:
 
-				# get latest module
-				else:
-					latest = self.Helper.get(join(self.Config.kiwi_repo_raw, self.Config.kiwi_repo_modules_dir, module, module_file))
+					# if file is up to date with remote
+					if isfile(asset.local) and self.runtime.assets.up_to_date(asset):
+						print 'Up to date'
 
-					# update / cache separately if module exists
-					if isfile(local_filepath):
-						with open(local_filepath, 'r') as current:
-							if self.Helper.sha(latest) == self.Helper.sha(current.read()):
-								print 'Up to date'
-							else:
-								if update:
-
-									# reopen for writing
-									current.close()
-									current = open(local_filepath, 'w')
-									self.Helper.overwrite(current, latest)
-
-									print 'Updated'
-									modules_fetched.append(module)
-								else:
-									with open(cached_filepath, 'w') as cached:
-										cached.write(latest)
-
-									print 'Update available'
-									modules_update.append(module)
-
-					# write module
+					# otherwise install latest
 					else:
-						with open(local_filepath, 'w') as module_local_file:
-							module_local_file.write(latest)
-						
+						self.runtime.assets.install(asset)
+
+						print 'Updated'
+						modules_fetched.append(module)
+
+				# getting module
+				else:
+
+					# if file is present on local
+					if isfile(asset.local):
+
+						# compare digests
+						if self.runtime.assets.up_to_date(asset):
+							print 'Up to date'
+						else:
+							print 'Update available'
+							modules_update.append(module)
+
+					# install missing module
+					else:
+						self.runtime.assets.install(asset)
+
 						print 'Done'
 						modules_fetched.append(module)
 
