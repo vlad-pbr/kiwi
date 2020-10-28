@@ -55,8 +55,7 @@ class Kiwi:
 
 					if Kiwi.Helper.ask("Proceed?", ['y', 'n']) == 'y':
 						for asset in assets_to_update:
-							with open(asset.cache, 'r') as cached_file, open(asset.local, 'w') as current_file:
-								Kiwi.Helper.overwrite(current_file, cached_file.read())
+							self.kiwi.assets.install(asset)
 
 					else:
 						sys.exit(0)
@@ -103,6 +102,23 @@ class Kiwi:
 					return Kiwi.Helper.sha(remote_data) == Kiwi.Helper.sha(local.read())
 
 			return False
+
+		def install(self, asset):
+
+			# ensure asset directory
+			Kiwi.Helper.ensure_directory('/'.join(asset.local.split('/')[:-1]))
+
+			with open(asset.local, 'w') as local:
+
+				# overwrite from cache
+				if isfile(asset.cache):
+					with open(asset.cache, 'r') as cache:
+						Kiwi.Helper.overwrite(local, cache.read())
+					os.remove(asset.cache)
+
+				# overwrite from remote
+				else:
+					Kiwi.Helper.overwrite(local, Kiwi.Helper.get(asset.remote))
 
 	class Side(Enum):
 		Client = "client.py"
@@ -262,23 +278,6 @@ class Kiwi:
 		sys.stdout = terminal
 		devnull.close()
 		return modules_fetched, modules_update, modules_failed
-
-	def install(self, asset, to_cache=False):
-
-		cached_path = join(self.Config.kiwi_local_cache_dir, asset.local.replace("/", "_")) if self.Config.kiwi_local_cache_dir else None
-		to_cache = to_cache and self.Config.kiwi_local_cache_dir
-		is_cached = cached_path and isfile(cached_path)
-		local_path = join(kiwi_home_dir, asset.local)
-
-		Kiwi.Helper.ensure_directory('/'.join(local_path.split("/")[:-1]))
-
-		if not is_cached:
-			with open(cached_path if to_cache else local_path, "w") as target_file:
-				Kiwi.Helper.overwrite(target_file, Kiwi.Helper.get(asset.remote))
-
-		else:
-			with open(cached_path, "r") as cached_file, open(local_path, "w") as target_file:
-				Kiwi.Helper.overwrite(target_file, cached_file.read())
 
 	@staticmethod
 	def say(jibberish, newline=True):
