@@ -45,7 +45,7 @@ def run(kiwi, argv):
 					sys.exit(1)
 
 		# inject kiwi helper functions and variables
-		module.__dict__['kiwi'] = kiwi.Helper(module_name)
+		module.__dict__['kiwi'] = kiwi.Helper(module_name, kiwi.Config)
 
 		# change directory to module directory
 		chdir(module.kiwi.module_home)
@@ -57,6 +57,6 @@ def run(kiwi, argv):
 		except Exception:
 			ex_type, module_exception, module_traceback = sys.exc_info()
 			kiwi.say("module '{}' crashed with the following exception: {}".format(module_name, module_exception))
-			if module.kiwi.write_crashlog(crash_log_path, ex_type, module_exception, module_traceback):
-				kiwi.say('detailed crash log can be found at {}'.format(crash_log_path))
+			if module.kiwi.write_crashlog(ex_type, module_exception, module_traceback):
+				kiwi.say('detailed crash log can be found at {}'.format(join(module.kiwi.module_home, "crash.log")))
 			sys.exit(1)

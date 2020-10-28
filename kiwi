@@ -153,6 +153,7 @@ class Kiwi:
 
 		kiwi_local_modules_dir = join(kiwi_home_dir, "modules")
 		kiwi_local_runtime_dir = join(kiwi_home_dir, "runtime")
+		kiwi_local_modules_home_dir = join(kiwi_home_dir, "modules_home")
 		kiwi_local_cache_dir = None
 
 	def __init__(self, config_path=None, server=False):
@@ -301,9 +302,9 @@ class Kiwi:
 		module_name = None
 		module_home = None
 
-		def __init__(self, name):
+		def __init__(self, name, config):
 			self.module_name = name
-			self.module_home = join(kiwi_home_dir, "modules", name)
+			self.module_home = join(config.kiwi_local_modules_home_dir, name)
 
 			self.ensure_directory(self.module_home)
 
