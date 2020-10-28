@@ -122,8 +122,6 @@ def parse_source(filepath):
 
 def kiwi_main():
 
-	"""Work with common file storage services to store and retrieve files"""
-
 	parser = argparse.ArgumentParser(description=kiwi_main.__doc__)
 	subparsers = parser.add_subparsers(title='actions', dest='action')
 	subparsers.required=True

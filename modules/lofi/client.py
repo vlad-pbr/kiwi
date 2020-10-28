@@ -39,8 +39,6 @@ def get_url(kiwi):
 
 def kiwi_main():
 
-	"""Open a new browser window with a lofi music stream"""
-
 	if len(argv) > 1:
 		if argv[1] == '--help' or argv[1] == '-h':
 			print __doc__

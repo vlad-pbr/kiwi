@@ -61,8 +61,6 @@ def format_log(log):
 
 def kiwi_main():
 
-	"""Log your thoughts and progress on different topics"""
-
 	parser = argparse.ArgumentParser(description=kiwi_main.__doc__,
 									 epilog=__doc__,
 									 formatter_class=argparse.RawDescriptionHelpFormatter)

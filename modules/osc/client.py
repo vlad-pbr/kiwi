@@ -52,8 +52,6 @@ def saw(val):
 
 def kiwi_main():
 
-	"""Oscillate a wave with given parameters"""
-
 	parser = argparse.ArgumentParser(description=kiwi_main.__doc__, epilog=__doc__)
 
 	parser.add_argument('-f', '--frequency', help='oscillation frequency (Hz)', type=int, required=True)

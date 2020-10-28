@@ -1,0 +1,1 @@
+Oscillate a wave with given parameters

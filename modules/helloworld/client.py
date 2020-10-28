@@ -24,10 +24,6 @@ import argparse
 # the basic requirement for a kiwi module is to have a kiwi_main() method
 def kiwi_main():
 
-	# docstrings are kiwi's module descriptions
-
-	"""Greet anybody!"""
-
 	# most kiwi modules use argparse, most also use docstring as description
 	parser = argparse.ArgumentParser(description=kiwi_main.__doc__, epilog=__doc__)
 	parser.add_argument('-n', '--name', help='who should be greeted?', type=str)
