@@ -10,7 +10,7 @@ def run(kiwi, args):
 	if args.list_modules:
 		installed = kiwi.get_installed_module_list()
 			
-		# try geting remote module list
+		# try getting remote module list
 		try:
 			modules = kiwi.get_remote_module_list()
 		except requests.exceptions.RequestException as e:
