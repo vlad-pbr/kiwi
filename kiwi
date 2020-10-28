@@ -59,9 +59,8 @@ class Kiwi:
 					else:
 						sys.exit(0)
 
-				# get missing module
-				with open(current_asset.local, 'w') as module_file:
-					module_file.write(Kiwi.Helper.get(current_asset.remote))
+				# install missing module
+				self.assets.install(current_asset)
 
 			load_source("module", current_asset.local).run(*args)
 
@@ -181,19 +180,9 @@ class Kiwi:
 		# init runtime
 		self.runtime = self._Runtime(self._Assets(self.Config))
 
-		# ensure kiwi directories exist
-		for directory in [
-			kiwi_home_dir,
-			self.Config.kiwi_local_modules_dir,
-			self.Config.kiwi_local_runtime_dir
-		]:
-			self.Helper.ensure_directory(directory)
-
 	def __del__(self):
 		if self.Config.kiwi_local_cache_dir is not None:
 			rmtree(self.Config.kiwi_local_cache_dir)
-
-		self.Config.kiwi_local_cache_dir = None
 
 	def get_installed_module_list(self):
 		return [module for module in os.listdir(self.Config.kiwi_local_modules_dir) if isfile(self.runtime.assets.module(module).local)]
