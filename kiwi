@@ -199,6 +199,12 @@ class Kiwi:
 		# init runtime
 		self.runtime = self._Runtime(self._Assets(self.Config))
 
+		# init directories
+		for directory in [
+			self.Config.kiwi_local_modules_dir
+		]:
+			self.Helper.ensure_directory(directory)
+
 	def __del__(self):
 		if self.Config.kiwi_local_cache_dir is not None:
 			rmtree(self.Config.kiwi_local_cache_dir)

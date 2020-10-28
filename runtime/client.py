@@ -79,7 +79,8 @@ def run(kiwi, args):
 	# kiwi self update
 	elif args.self_update:
 
-		kiwi.runtime.update("I have an update")
+		if kiwi.runtime.update("I have an update"):
+			kiwi.say("I'm up to date")
 
 if __name__ == "__main__":
         main()
