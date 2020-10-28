@@ -412,23 +412,29 @@ def main():
 		# parse args
 		parser = argparse.ArgumentParser(description=main.__doc__,
 										 formatter_class=argparse.RawDescriptionHelpFormatter)
+
+		# kiwi server/client side boolean
+		parser.add_argument('-s', '--server', action='store_true')
+
+		# mutually exclusive args
 		group = parser.add_mutually_exclusive_group()
 		group.add_argument('-l', '--list-modules', action="store_true")
 		group.add_argument('-g', '--get-modules', nargs='*')
 		group.add_argument('-u', '--update-modules', nargs='*')
 		group.add_argument('-U', '--self-update', action='store_true')
-		group.add_argument('-s', '--server', action='store_true')
 		group.add_argument('-c', '--config', type=str)
+
 		args = parser.parse_args()
 
+		# init kiwi
+		kiwi = Kiwi(args.config, args.server)
+
 		# start kiwi server
-		if args.server:
-			kiwi = Kiwi(args.config, True)
+		if args.server and len(sys.argv) is 2:
 			kiwi.runtime.run(kiwi.runtime.Modules.Server, kiwi)
 
 		# pass arguments to kiwi client
 		else:
-			kiwi = Kiwi(args.config)
 			kiwi.runtime.run(kiwi.runtime.Modules.Client, kiwi, args)
 
 if __name__ == "__main__":
