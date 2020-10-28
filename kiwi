@@ -21,32 +21,31 @@ kiwi_home_dir = join(expanduser("~"), '.kiwi')
 class Kiwi:
 
 	runtime = None
-	assets = None
 
 	class _Runtime:
 
-		kiwi = None
+		assets = None
 
 		class Modules(Enum):
 			Client = "client.py"
 			Server = "server.py"
 			Module = "module.py"
 
-		def __init__(self, kiwi):
-			self.kiwi = kiwi
+		def __init__(self, assets):
+			self.assets = assets
 
 		def run(self, module, *args):
 
-			current_asset = self.kiwi.assets.runtime(module)
+			current_asset = self.assets.runtime(module)
 
 			if not isfile(current_asset.local):
 
-				runtime_assets = [self.kiwi.assets.runtime(asset) for asset in self.Modules if asset != module]
+				runtime_assets = [self.assets.runtime(asset) for asset in self.Modules if asset != module]
 
 				# check for runtime updates
 				assets_to_update = []
 				for asset in runtime_assets:
-					if isfile(asset.local) and not self.kiwi.assets.up_to_date(asset):
+					if isfile(asset.local) and not self.assets.up_to_date(asset):
 						assets_to_update.append(asset)
 
 				# update outdated modules
@@ -55,7 +54,7 @@ class Kiwi:
 
 					if Kiwi.Helper.ask("Proceed?", ['y', 'n']) == 'y':
 						for asset in assets_to_update:
-							self.kiwi.assets.install(asset)
+							self.assets.install(asset)
 
 					else:
 						sys.exit(0)
@@ -165,9 +164,8 @@ class Kiwi:
 		else:
 			self.Helper.ensure_directory(self.Config.kiwi_local_cache_dir)
 
-		# init inner classes
-		self.assets = self._Assets(self.Config)
-		self.runtime = self._Runtime(self)
+		# init runtime
+		self.runtime = self._Runtime(self._Assets(self.Config))
 
 		# ensure kiwi directories exist
 		for directory in [
