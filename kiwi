@@ -8,7 +8,7 @@ import sys
 import os
 from enum import Enum
 from json import loads
-from os.path import isfile, join, expanduser
+from os.path import isfile, join, expanduser, getsize
 from hashlib import sha256
 from shutil import rmtree
 from imp import load_source, new_module
@@ -104,20 +104,34 @@ class Kiwi:
 
 		def install(self, asset):
 
-			# ensure asset directory
-			Kiwi.Helper.ensure_directory('/'.join(asset.local.split('/')[:-1]))
+			module_dir = '/'.join(asset.local.split('/')[:-1])
 
-			with open(asset.local, 'w') as local:
+			try:
 
-				# overwrite from cache
-				if isfile(asset.cache):
-					with open(asset.cache, 'r') as cache:
-						Kiwi.Helper.overwrite(local, cache.read())
-					os.remove(asset.cache)
+				# ensure asset directory
+				Kiwi.Helper.ensure_directory(module_dir)
 
-				# overwrite from remote
-				else:
-					Kiwi.Helper.overwrite(local, Kiwi.Helper.get(asset.remote))
+				with open(asset.local, 'w') as local:
+
+					# overwrite from cache
+					if isfile(asset.cache):
+						with open(asset.cache, 'r') as cache:
+							Kiwi.Helper.overwrite(local, cache.read())
+						os.remove(asset.cache)
+
+					# overwrite from remote
+					else:
+						Kiwi.Helper.overwrite(local, Kiwi.Helper.get(asset.remote))
+
+			finally:
+
+				# remove empty module file
+				if getsize(asset.local) is 0:
+					os.remove(asset.local)
+
+				# remove empty module directory
+				if len(os.listdir(module_dir)) is 0:
+					os.rmdir(module_dir)
 
 	class Side(Enum):
 		Client = "client.py"
@@ -182,7 +196,7 @@ class Kiwi:
 		self.Config.kiwi_local_cache_dir = None
 
 	def get_installed_module_list(self):
-		return [module for module in os.listdir(self.Config.kiwi_local_modules_dir)]
+		return [module for module in os.listdir(self.Config.kiwi_local_modules_dir) if isfile(self.runtime.assets.module(module).local)]
 
 	def get_remote_module_list(self):
 		return [module['name'] for module in loads(self.Helper.get(join(self.Config.kiwi_repo_api, self.Config.kiwi_repo_modules_dir)))]
