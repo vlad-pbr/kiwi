@@ -15,7 +15,7 @@ def run(kiwi, args):
 			modules = kiwi.get_remote_module_list()
 		except requests.exceptions.RequestException as e:
 			kiwi.say("could not reach remote to fetch module list, listing local modules only")
-			modules = installed
+			modules = installed[:]
 
 		# compare modules and mark as installed
 		for module in modules:

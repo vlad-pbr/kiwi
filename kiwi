@@ -194,7 +194,20 @@ class Kiwi:
 		return [module for module in os.listdir(self.Config.kiwi_local_modules_dir) if isfile(self.runtime.assets.module(module).local)]
 
 	def get_remote_module_list(self):
-		return [module['name'] for module in loads(self.Helper.get(join(self.Config.kiwi_repo_api, self.Config.kiwi_repo_modules_dir)))]
+		modules_dir = loads(self.Helper.get(join(self.Config.kiwi_repo_api, self.Config.kiwi_repo_modules_dir)))
+		remote = []
+
+		# get list of module directories
+		for module in modules_dir:
+			module_dir = loads(self.Helper.get(join(self.Config.kiwi_repo_api, self.Config.kiwi_repo_modules_dir, module['name'])))
+
+			# find matching module file
+			for _file in module_dir:
+				if _file['name'] == self.Config.kiwi_side.value:
+					remote.append(module['name'])
+					break
+
+		return remote
 
 	def get_module_description(self, module):
 
