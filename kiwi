@@ -77,6 +77,12 @@ class Kiwi:
 				local = join(self.config.kiwi_local_modules_dir, name, self.config.kiwi_side.value)
 			))
 
+		def meta(self, name):
+			return self._with_cache(argparse.Namespace(
+				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_modules_dir, name, "meta.txt"),
+				local = join(self.config.kiwi_local_modules_dir, name, "meta.txt")
+			))
+
 		def runtime(self, module):
 			return self._with_cache(argparse.Namespace(
 				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_runtime_dir, module.value),
@@ -191,18 +197,21 @@ class Kiwi:
 		return [module['name'] for module in loads(self.Helper.get(join(self.Config.kiwi_repo_api, self.Config.kiwi_repo_modules_dir)))]
 
 	def get_module_description(self, module):
-		try:
-			# import the local module if present, remote if not present
-			if module in self.get_installed_module_list():
-				module_object = load_source(module, join(self.Config.kiwi_local_modules_dir, module, 'client.py'))
-			else:
-				module_object = new_module(module)
-				exec self.Helper.get(join(self.Config.kiwi_repo_raw, self.Config.kiwi_repo_modules_dir, module, 'client.py')) in module_object.__dict__
 
-			return module_object.kiwi_main.__doc__ if hasattr(module_object, 'kiwi_main') and module_object.kiwi_main.__doc__ else '[missing description]'
+		asset = self.runtime.assets.meta(module)
+
+		try:
+
+			# install meta file if not present
+			if not isfile(asset.local):
+				self.runtime.assets.install(asset)
+
+			# read meta
+			with open(asset.local, 'r') as local:
+				return local.read()
 
 		except Exception as e:
-			self.Helper.report(e)
+			return "[missing description]"
 
 	def fetch_modules(self, modules, update=False, quiet=False):
 		modules_fetched = []
