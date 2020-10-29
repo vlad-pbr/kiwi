@@ -50,7 +50,7 @@ def write(log, topic):
 	# use storage module to store the journal
 	stdout = command('kiwi storage source -S {} -m "{}" -n {} -c "{}"'.format(\
                 join(kiwi.module_home, 'sources'), get_timestamp(), topic, log))
-	print stdout.rstrip(),
+	print(stdout.rstrip(), end=' ')
 
 def format_log(log):
 	out = '-'*50 + '\n'
@@ -79,15 +79,15 @@ def kiwi_main():
 
 	# journal needs its sources
 	if not isfile('sources'):
-		print 'You need to set up your journal sources using the kiwi storage module.'
+		print('You need to set up your journal sources using the kiwi storage module.')
 
 	# list journals
 	elif args.list_topics:
-		print get_topics(),
+		print(get_topics(), end=' ')
 
 	# print journal
 	elif not args.log and not args.file:
-		print read(args.topic),
+		print(read(args.topic), end=' ')
 
 	# write to journal
 	else:

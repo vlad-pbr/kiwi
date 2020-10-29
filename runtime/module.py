@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import sys
 from os import chdir
@@ -40,8 +40,8 @@ def run(kiwi, argv):
 				_, _, modules_failed = kiwi.fetch_modules(dependencies)
 				if modules_failed:
 					kiwi.say('could not resolve the following dependencies: {}'.format(', '.join(modules_failed)))
-					print "Possible solutions:"
-					print "\t* sudo kiwi -g {}".format(' '.join(modules_failed))
+					print("Possible solutions:")
+					print("\t* sudo kiwi -g {}".format(' '.join(modules_failed)))
 					sys.exit(1)
 
 		# inject kiwi helper functions and variables

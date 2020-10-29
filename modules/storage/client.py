@@ -75,13 +75,13 @@ def github_list(args):
 # ---------------------------------------------------------------------------------------------------
 
 def store(args):
-	print '{}:'.format(args.service),
+	print('{}:'.format(args.service), end=' ')
 
         try:
                 response = globals()[args.service + '_store'](args)
-                print 'successful' if response is True else response
+                print('successful' if response is True else response)
         except Exception as e:
-                print e
+                print(e)
 
 def retrieve(args):
 	return globals()[args.service + '_retrieve'](args)
@@ -139,7 +139,7 @@ def kiwi_main():
 	source_parser.add_argument('-S', '--source-file', help='destination to a file of sources', type=str, required=True)
 	source_parser.add_argument('-n', '--filename', help='filename within the destination folder', required=False)
 
-	for name, subparser in subparsers.choices.items():
+	for name, subparser in list(subparsers.choices.items()):
 
 		# store / source common arguments
 		if name != 'retrieve':
@@ -162,7 +162,7 @@ def kiwi_main():
 		if name != 'source':
 
 			# required arguments
-			subparser.add_argument('-s', '--service', help='storage service', type=str, choices=service_args.keys(), required=True)
+			subparser.add_argument('-s', '--service', help='storage service', type=str, choices=list(service_args.keys()), required=True)
 			subparser.add_argument('-d', '--destination', help='file path within the storage', type=str, required=True)
 
 			# optional arguments
@@ -201,10 +201,10 @@ def kiwi_main():
                                 	arg.destination = os.path.join(arg.destination, args.filename)
 
 				if args.retrieve:
-					print retrieve(arg),
+					print(retrieve(arg), end=' ')
 					return
 				elif args.list:
-					print list_items(arg),
+					print(list_items(arg), end=' ')
 					return
 				else:
 
@@ -217,7 +217,7 @@ def kiwi_main():
 
 					store(arg)
 			else:
-				print missing
+				print(missing)
 
 	# adhoc action
 	else:
@@ -242,7 +242,7 @@ def kiwi_main():
 				data = retrieve(args)
 
 				if not args.hide:
-                                	print data,
+                                	print(data, end=' ')
 
 				# store data in a file
                         	if args.file:
@@ -250,4 +250,4 @@ def kiwi_main():
                                         	content_file.write(data)
 
 		else:
-			print missing
+			print(missing)

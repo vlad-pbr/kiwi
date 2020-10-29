@@ -41,14 +41,14 @@ def kiwi_main():
 
 	if len(argv) > 1:
 		if argv[1] == '--help' or argv[1] == '-h':
-			print __doc__
+			print(__doc__)
 		else:
-			print 'lofi: use --help'
+			print('lofi: use --help')
 
 	elif find_executable("explorer.exe") is not None:
 		call(["explorer.exe", get_url(kiwi) + "&\""])
 	elif find_executable("xdg-open") is not None:
 		call(["xdg-open", get_url(kiwi)])
 	else:
-		print "No available browsers found."
+		print("No available browsers found.")
 		exit(1)

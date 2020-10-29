@@ -32,11 +32,11 @@ def kiwi_main():
 	# 'kiwi' namespace injected into the module contains useful functions and variables
 	if args.name:
 		if args.name == kiwi.module_name:
-			print 'Hello to you too!'
+			print('Hello to you too!')
 		else:
-			print 'Hello, {}!'.format(args.name)
+			print('Hello, {}!'.format(args.name))
 
 	# bait the first time user to read the instructions	
 	else:
-		print 'Hello, world!'
-		print 'Tip: use --help flag to see how you greet others!'
+		print('Hello, world!')
+		print('Tip: use --help flag to see how you greet others!')

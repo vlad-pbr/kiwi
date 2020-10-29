@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import argparse
 import requests
@@ -143,11 +143,11 @@ class Kiwi:
 			finally:
 
 				# remove empty module file
-				if getsize(asset.local) is 0:
+				if getsize(asset.local) == 0:
 					os.remove(asset.local)
 
 				# remove empty module directory
-				if len(os.listdir(module_dir)) is 0:
+				if len(os.listdir(module_dir)) == 0:
 					os.rmdir(module_dir)
 
 	class Side(Enum):
@@ -242,7 +242,7 @@ class Kiwi:
 			with open(asset.local, 'r') as local:
 				return local.read()
 
-		except Exception as e:
+		except Exception:
 			return "[missing description]"
 
 	def fetch_modules(self, modules, update=False, quiet=False):
@@ -258,8 +258,8 @@ class Kiwi:
 
 		for index, module in enumerate(modules):
 			
-			print "[" + str(index + 1) + "/" + str(len(modules)) + "]",
-			print "Fetching " + module + '...',
+			print("[" + str(index + 1) + "/" + str(len(modules)) + "]", end=' ')
+			print("Fetching " + module + '...', end=' ')
 			sys.stdout.flush()
 
 			asset = self.runtime.assets.module(module)
@@ -271,13 +271,13 @@ class Kiwi:
 
 					# if file is up to date with remote
 					if isfile(asset.local) and self.runtime.assets.up_to_date(asset):
-						print 'Up to date'
+						print('Up to date')
 
 					# otherwise install latest
 					else:
 						self.runtime.assets.install(asset)
 
-						print 'Updated'
+						print('Updated')
 						modules_fetched.append(module)
 
 				# getting module
@@ -288,16 +288,16 @@ class Kiwi:
 
 						# compare digests
 						if self.runtime.assets.up_to_date(asset):
-							print 'Up to date'
+							print('Up to date')
 						else:
-							print 'Update available'
+							print('Update available')
 							modules_update.append(module)
 
 					# install missing module
 					else:
 						self.runtime.assets.install(asset)
 
-						print 'Done'
+						print('Done')
 						modules_fetched.append(module)
 
 			except requests.exceptions.RequestException as e:
@@ -313,7 +313,7 @@ class Kiwi:
 
 	@staticmethod
 	def say(jibberish, newline=True):
-		print 'kiwi: ' + jibberish + ('\n' if newline else ''),
+		print('kiwi: ' + jibberish + ('\n' if newline else ''), end=' ')
 
 	class Helper:
 
@@ -359,27 +359,27 @@ class Kiwi:
 
 					# at this point any error is a syntax error
 					except Exception as e:
-						self.report(e, '{}: syntax error on line {}: "{}"'.format(path, index + 1, arg), True)
+						Kiwi.Helper.report(e, '{}: syntax error on line {}: "{}"'.format(path, index + 1, arg), True)
 
 			return args
 
 		@staticmethod
 		def report(e, description=None, fatal=False):
-			print 'Error:',
-			print e if not description else '{} ({})'.format(description, e)
+			print('Error:', end=' ')
+			print(e if not description else '{} ({})'.format(description, e))
 	
 			if fatal:
 				sys.exit(1)
 
 		@staticmethod
 		def sha(data):
-			return sha256(data).hexdigest()
+			return sha256(data.encode('utf-8')).hexdigest()
 
 		@staticmethod
 		def ask(query, options):
 			while True:
-				print '{} ({})'.format(query, '/'.join(options)),
-				response = raw_input()
+				print('{} ({})'.format(query, '/'.join(options)), end=' ')
+				response = input()
 				if response in options:
 					return response
 		
@@ -402,7 +402,7 @@ class Kiwi:
 				os.makedirs(directory)
 			except OSError as e:
 				if e.errno is not errno.EEXIST:
-					self.report(e, 'could not create directory {}'.format(directory), True)
+					Kiwi.Helper.report(e, 'could not create directory {}'.format(directory), True)
 
 def main():
 
@@ -416,8 +416,8 @@ def main():
 	# no arguments passed
 	if len(sys.argv) == 1:
 
-		print main.__doc__
-		print '\tTry getting and running the \'helloworld\' module!\n'
+		print(main.__doc__)
+		print('\tTry getting and running the \'helloworld\' module!\n')
 
 	# module execution
 	elif len(sys.argv) > 1 and sys.argv[1][:1] != '-':
@@ -448,7 +448,7 @@ def main():
 		kiwi = Kiwi(args.config, args.server)
 
 		# start kiwi server
-		if args.server and len(sys.argv) is 2:
+		if args.server and len(sys.argv) == 2:
 			kiwi.runtime.run(kiwi.runtime.Modules.Server, kiwi)
 
 		# pass arguments to kiwi client
