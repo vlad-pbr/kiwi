@@ -76,12 +76,12 @@ def github_list(args):
 
 def store(args):
 	print('{}:'.format(args.service), end=' ')
-
-        try:
-                response = globals()[args.service + '_store'](args)
-                print('successful' if response is True else response)
-        except Exception as e:
-                print(e)
+	
+	try:
+		response = globals()[args.service + '_store'](args)
+		print('successful' if response is True else response)
+	except Exception as e:
+		print(e)
 
 def retrieve(args):
 	return globals()[args.service + '_retrieve'](args)
@@ -146,8 +146,8 @@ def kiwi_main():
 
 			# required arguments
 			content_group = subparser.add_mutually_exclusive_group(required=True)
-        		content_group.add_argument('-c', '--content', help='file content', type=str)
-        		content_group.add_argument('-f', '--file', help='file contents of which should be stored', type=str)
+			content_group.add_argument('-c', '--content', help='file content', type=str)
+			content_group.add_argument('-f', '--file', help='file contents of which should be stored', type=str)
 
 			if name == 'source':
 				content_group.add_argument('-r', '--retrieve', help='retrieve content instead of storing', action='store_true')
@@ -156,7 +156,7 @@ def kiwi_main():
 			# optional arguments
 			subparser.add_argument('-m', '--message', help='commit message (when using Git)', type=str)
 			subparser.add_argument('--committer-user', help='name of the committer (when using Git)', type=str)
-                        subparser.add_argument('--committer-email', help='e-mail of the committer (when using Git)', type=str)
+			subparser.add_argument('--committer-email', help='e-mail of the committer (when using Git)', type=str)
 
 		# store / retrieve common arguments
 		if name != 'source':
@@ -242,12 +242,12 @@ def kiwi_main():
 				data = retrieve(args)
 
 				if not args.hide:
-                                	print(data, end=' ')
+					print(data, end=' ')
 
 				# store data in a file
-                        	if args.file:
-                                	with open(args.file, 'w') as content_file:
-                                        	content_file.write(data)
+				if args.file:
+					with open(args.file, 'w') as content_file:
+						content_file.write(data)
 
 		else:
 			print(missing)
