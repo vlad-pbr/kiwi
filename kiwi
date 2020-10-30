@@ -80,7 +80,7 @@ class Kiwi:
 
 				# update outdated runtime modules
 				if assets_to_update:
-					Kiwi.say(message + ".", False)
+					Kiwi.say(message + ". ", False)
 
 					if Kiwi.Helper.ask("Proceed?", ['y', 'n']) == 'y':
 						for asset in assets_to_update:
