@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 """
 Single oscillator that can generate a wave at a given frequency for a given duration.
@@ -6,6 +6,7 @@ I plan on adding more voices of choice, maybe even filters.
 """
 
 import argparse
+import numpy
 import soundfile as sf
 from math import sin, pi, log10
 from random import random, seed
