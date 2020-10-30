@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import requests
 import errno
 import traceback
 import sys
@@ -17,7 +16,7 @@ from shutil import rmtree
 from datetime import datetime
 from tempfile import mkdtemp
 
-# resolve not built in python packages
+# package resolution method =============
 def resolve(package):
 
 	try:
@@ -25,12 +24,14 @@ def resolve(package):
 	except ImportError:
 		subprocess.call([sys.executable, "-m", "pip", "install", "--no-cache-dir", package])
 
-for dep in ['requests', 'enum']:
+# resolve not built-in python packages
+for dep in ['requests']:
 	resolve(dep)
 
 # import resolved packages
 import requests
-from enum import Enum
+
+# =======================================
 
 # unconfigurable globals
 kiwi_home_dir = join(expanduser("~"), '.kiwi')
