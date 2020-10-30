@@ -11,7 +11,7 @@ Lofi will try to read a key=value file located at ~/.kiwi/lofi/lofi.conf. It's g
 In case both are specified, 'link' takes priority.
 """
 
-from subprocess import call
+from subprocess import call, DEVNULL
 from distutils.spawn import find_executable
 from os.path import isfile, join
 from requests import get
@@ -19,7 +19,7 @@ from random import randint
 from sys import argv, exit
 
 def get_url(kiwi):
-	videoId = 'hHW1oY26kxQ'
+	videoId = 'DWcJFNfaw9c'
 
 	config_path = join(kiwi.module_home, kiwi.module_name + '.conf')
 	if isfile(config_path):
@@ -40,15 +40,17 @@ def get_url(kiwi):
 def kiwi_main(kiwi):
 
 	if len(argv) > 1:
-		if argv[1] == '--help' or argv[1] == '-h':
+		if argv[1] in ['--help', '-h']:
 			print(__doc__)
 		else:
 			print('lofi: use --help')
 
 	elif find_executable("explorer.exe") is not None:
-		call(["explorer.exe", get_url(kiwi) + "&\""])
+		call(["explorer.exe", get_url(kiwi) + "&\""], stdout=DEVNULL)
 	elif find_executable("xdg-open") is not None:
-		call(["xdg-open", get_url(kiwi)])
+		call(["nohup", "xdg-open", get_url(kiwi)], stdout=DEVNULL)
 	else:
 		print("No available browsers found.")
 		exit(1)
+
+	exit(0)
