@@ -6,12 +6,14 @@ import errno
 import traceback
 import sys
 import os
+import importlib
+import subprocess
+import ast
 from enum import Enum
 from json import loads
 from os.path import isfile, join, expanduser, getsize
 from hashlib import sha256
 from shutil import rmtree
-from importlib import util, machinery
 from datetime import datetime
 from tempfile import mkdtemp
 
@@ -316,16 +318,40 @@ class Kiwi:
 		print('kiwi: ' + jibberish + ('\n' if newline else ''), end='')
 
 	@staticmethod
+	def resolve(package):
+
+		try:
+			importlib.import_module(package)
+		except ImportError:
+			subprocess.call([sys.executable, "-m", "pip", "install", "--no-cache-dir", package])
+
+	@staticmethod
 	def import_module(module_name, module_path):
+
+		# recursive body resolving method
+		def _resolve_body(body):
+			
+			for body_object in body:
+				if isinstance(body_object, ast.Import):
+					for name in body_object.names:
+						Kiwi.resolve(name.name)
+				elif isinstance(body_object, ast.ImportFrom):
+					Kiwi.resolve(body_object.module)
+				elif hasattr(body_object, 'body'):
+					_resolve_body(body_object.body)
+
+		# resolve python dependencies
+		with open(module_path, 'r') as module_file:
+			_resolve_body(ast.parse(module_file.read()).body)
 		
 		# get module spec
-		module_spec = util.spec_from_loader(
+		module_spec = importlib.util.spec_from_loader(
 			module_name,
-			machinery.SourceFileLoader(module_name, module_path)
+			importlib.machinery.SourceFileLoader(module_name, module_path)
 		)
 
 		# load and exec
-		module = util.module_from_spec(module_spec)
+		module = importlib.util.module_from_spec(module_spec)
 		module_spec.loader.exec_module(module)
 
 		return module
