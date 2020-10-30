@@ -17,6 +17,21 @@ from shutil import rmtree
 from datetime import datetime
 from tempfile import mkdtemp
 
+# resolve not built in python packages
+def resolve(package):
+
+	try:
+		importlib.import_module(package)
+	except ImportError:
+		subprocess.call([sys.executable, "-m", "pip", "install", "--no-cache-dir", package])
+
+for dep in ['requests', 'enum']:
+	resolve(dep)
+
+# import resolved packages
+import requests
+from enum import Enum
+
 # unconfigurable globals
 kiwi_home_dir = join(expanduser("~"), '.kiwi')
 
@@ -318,14 +333,6 @@ class Kiwi:
 		print('kiwi: ' + jibberish + ('\n' if newline else ''), end='')
 
 	@staticmethod
-	def resolve(package):
-
-		try:
-			importlib.import_module(package)
-		except ImportError:
-			subprocess.call([sys.executable, "-m", "pip", "install", "--no-cache-dir", package])
-
-	@staticmethod
 	def import_module(module_name, module_path):
 
 		# recursive body resolving method
@@ -334,9 +341,9 @@ class Kiwi:
 			for body_object in body:
 				if isinstance(body_object, ast.Import):
 					for name in body_object.names:
-						Kiwi.resolve(name.name)
+						resolve(name.name)
 				elif isinstance(body_object, ast.ImportFrom):
-					Kiwi.resolve(body_object.module)
+					resolve(body_object.module)
 				elif hasattr(body_object, 'body'):
 					_resolve_body(body_object.body)
 
