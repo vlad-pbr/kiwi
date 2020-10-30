@@ -44,7 +44,7 @@ def github_store(args):
 		commit_json['committer']['name'] = args.committer_user
 	if args.committer_email:
                 commit_json['committer']['email'] = args.committer_email
-	if len(commit_json['committer']) is 0:
+	if len(commit_json['committer']) == 0:
 		del commit_json['committer']
 
 	# file blob sha must be present if updating
