@@ -213,7 +213,7 @@ class Kiwi:
 
 			# overwrite configurable variables if present
 			for var in [attr for attr in self.Config.__dict__ if not attr.startswith("__")]:
-				self.Config.__dict__[var] = config.get(var, self.Config.__dict__[var])
+				setattr(self.Config, var, config.get(var, self.Config.__dict__[var]))
 
 		# set server bool
 		self.Config.kiwi_side = self.Side.Server if server else self.Side.Client
