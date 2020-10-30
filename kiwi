@@ -56,11 +56,12 @@ class Kiwi:
 
 			current_asset = self.assets.runtime(module)
 
-			if not isfile(current_asset.local) and not self.update("runtime must be updated"):
-				sys.exit(0)
+			if not isfile(current_asset.local):
+				if not self.update("runtime must be updated"):
+					sys.exit(0)
 
-			# install missing module
-			self.assets.install(current_asset)
+				# install missing module
+				self.assets.install(current_asset)
 
 			Kiwi.import_module('kiwi_' + module.value, current_asset.local).run(*args)
 
@@ -69,24 +70,33 @@ class Kiwi:
 			runtime_assets = [self.assets.runtime(asset) for asset in self.Modules if isfile(self.assets.runtime(asset).local)]
 			runtime_assets.append(self.assets.kiwi())
 
-			# check for runtime updates
-			assets_to_update = []
-			for asset in runtime_assets:
-				if isfile(asset.local) and not self.assets.up_to_date(asset):
-					assets_to_update.append(asset)
+			try:
 
-			# update outdated runtime modules
-			if assets_to_update:
-				Kiwi.say(message + ".", False)
+				# check for runtime updates
+				assets_to_update = []
+				for asset in runtime_assets:
+					if isfile(asset.local) and not self.assets.up_to_date(asset):
+						assets_to_update.append(asset)
 
-				if Kiwi.Helper.ask("Proceed?", ['y', 'n']) == 'y':
-					for asset in assets_to_update:
-						self.assets.install(asset)
+				# update outdated runtime modules
+				if assets_to_update:
+					Kiwi.say(message + ".", False)
 
-				else:
-					return False
+					if Kiwi.Helper.ask("Proceed?", ['y', 'n']) == 'y':
+						for asset in assets_to_update:
+							self.assets.install(asset)
 
-			return True
+					else:
+						return False
+
+				return True
+
+			except requests.exceptions.RequestException as e:
+				Kiwi.Helper.report(e, 'could not get remote asset')
+			except (IOError, OSError) as e:
+				Kiwi.Helper.report(e)
+
+			return False
 
 	class _Assets:
 
