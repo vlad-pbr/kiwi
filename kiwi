@@ -11,7 +11,7 @@ from json import loads
 from os.path import isfile, join, expanduser, getsize
 from hashlib import sha256
 from shutil import rmtree
-from imp import load_source, new_module
+from importlib import util, machinery
 from datetime import datetime
 from tempfile import mkdtemp
 
@@ -44,7 +44,7 @@ class Kiwi:
 			# install missing module
 			self.assets.install(current_asset)
 
-			load_source("module", current_asset.local).run(*args)
+			Kiwi.import_module('kiwi_' + module.value, current_asset.local).run(*args)
 
 		def update(self, message):
 		
@@ -314,6 +314,21 @@ class Kiwi:
 	@staticmethod
 	def say(jibberish, newline=True):
 		print('kiwi: ' + jibberish + ('\n' if newline else ''), end=' ')
+
+	@staticmethod
+	def import_module(module_name, module_path):
+		
+		# get module spec
+		module_spec = util.spec_from_loader(
+			module_name,
+			machinery.SourceFileLoader(module_name, module_path)
+		)
+
+		# load and exec
+		module = util.module_from_spec(module_spec)
+		module_spec.loader.exec_module(module)
+
+		return module
 
 	class Helper:
 

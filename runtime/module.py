@@ -3,7 +3,6 @@
 import sys
 from os import chdir
 from os.path import join
-from imp import load_source
 
 def run(kiwi, argv):
 
@@ -26,7 +25,7 @@ def run(kiwi, argv):
 				sys.exit(1)
 				
 	# import module code
-	module = load_source(module_name, join(kiwi.Config.kiwi_local_modules_dir, module_name, 'client.py'))
+	module = kiwi.import_module(module_name, kiwi.runtime.assets.module(module_name).local)
 
 	# validate the module
 	if not hasattr(module, 'kiwi_main'):
