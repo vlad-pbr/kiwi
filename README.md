@@ -4,6 +4,7 @@ Kiwi (/ˈkiːwi/ KEE-wee) or kiwis are flightless birds native to New Zealand, i
 
 ## Get kiwi
 ```
-$ curl https://raw.githubusercontent.com/vlad-pbr/kiwi/master/kiwi | sudo tee /usr/bin/kiwi > /dev/null
-$ sudo chmod 755 /usr/bin/kiwi
+mkdir $HOME/.local/bin
+curl https://raw.githubusercontent.com/vlad-pbr/kiwi/master/kiwi > $HOME/.local/bin/kiwi
+chmod +x $HOME/.local/bin/kiwi
 ```
