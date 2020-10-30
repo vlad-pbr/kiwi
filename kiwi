@@ -313,7 +313,7 @@ class Kiwi:
 
 	@staticmethod
 	def say(jibberish, newline=True):
-		print('kiwi: ' + jibberish + ('\n' if newline else ''), end=' ')
+		print('kiwi: ' + jibberish + ('\n' if newline else ''), end='')
 
 	@staticmethod
 	def import_module(module_name, module_path):
