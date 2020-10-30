@@ -50,7 +50,7 @@ def sine(val):
 def saw(val):
 	return ((val % (pi * 2)) / pi) - 1
 
-def kiwi_main():
+def kiwi_main(_):
 
 	parser = argparse.ArgumentParser(description=kiwi_main.__doc__, epilog=__doc__)
 

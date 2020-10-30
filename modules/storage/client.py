@@ -120,9 +120,9 @@ def parse_source(filepath):
 
 	return args_list
 
-def kiwi_main():
+def kiwi_main(kiwi):
 
-	parser = argparse.ArgumentParser(description=kiwi_main.__doc__)
+	parser = argparse.ArgumentParser(description=kiwi.module_desc)
 	subparsers = parser.add_subparsers(title='actions', dest='action')
 	subparsers.required=True
 

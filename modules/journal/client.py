@@ -25,18 +25,18 @@ def get_timestamp():
 def command(cmd):
 	return Popen(shlex.split(cmd), stdout=PIPE).communicate()[0]
 
-def read(topic):
+def read(kiwi, topic):
 	return command('kiwi storage source -r -S {} -n {}'.format(\
                 join(kiwi.module_home, 'sources'), topic))
 
-def get_topics():
+def get_topics(kiwi):
 	return command('kiwi storage source -l -S {}'.format(\
                 join(kiwi.module_home, 'sources')))
 
-def write(log, topic):
+def write(kiwi, log, topic):
 
 	# get existing logs and append new content
-	journal = read(topic)
+	journal = read(kiwi, topic)
 
 	if len(journal.split('\n')) < 4:
 		if kiwi.ask('Topic does not exist. Create?', ['y', 'n']) != 'y':
@@ -59,7 +59,7 @@ def format_log(log):
 	out += log.rstrip('\n') + '\n'*3
 	return out
 
-def kiwi_main():
+def kiwi_main(kiwi):
 
 	parser = argparse.ArgumentParser(description=kiwi_main.__doc__,
 									 epilog=__doc__,
@@ -83,17 +83,17 @@ def kiwi_main():
 
 	# list journals
 	elif args.list_topics:
-		print(get_topics(), end=' ')
+		print(get_topics(kiwi), end=' ')
 
 	# print journal
 	elif not args.log and not args.file:
-		print(read(args.topic), end=' ')
+		print(read(kiwi, args.topic), end=' ')
 
 	# write to journal
 	else:
 		log = args.log
 
 		if args.file:
-			log = read(args.file)
+			log = read(kiwi, args.file)
 
-		write(log, args.topic)
+		write(kiwi, log, args.topic)

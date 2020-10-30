@@ -334,10 +334,12 @@ class Kiwi:
 
 		module_name = None
 		module_home = None
+		module_desc = None
 
-		def __init__(self, name, config):
+		def __init__(self, name, kiwi):
 			self.module_name = name
-			self.module_home = join(config.kiwi_local_modules_home_dir, name)
+			self.module_home = join(kiwi.Config.kiwi_local_modules_home_dir, name)
+			self.module_desc = kiwi.get_module_description(name)
 
 			self.ensure_directory(self.module_home)
 

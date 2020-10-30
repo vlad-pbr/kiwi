@@ -37,7 +37,7 @@ def get_url(kiwi):
 
 	return 'https://www.youtube.com/watch?v=' + videoId
 
-def kiwi_main():
+def kiwi_main(kiwi):
 
 	if len(argv) > 1:
 		if argv[1] == '--help' or argv[1] == '-h':
