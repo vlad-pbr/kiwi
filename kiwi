@@ -354,7 +354,7 @@ class Kiwi:
 					for name in body_object.names:
 						resolve(name.name)
 				elif isinstance(body_object, ast.ImportFrom):
-					resolve(body_object.module)
+					resolve(body_object.module.split('.')[0])
 				elif hasattr(body_object, 'body'):
 					_resolve_body(body_object.body)
 
