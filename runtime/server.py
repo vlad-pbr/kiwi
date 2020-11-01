@@ -11,7 +11,7 @@ def module(module):
 
 def run(kiwi):
 
-	# server modules as static files
+	# serve modules as static files
 	app.static_folder = kiwi.Config.kiwi_local_modules_dir
 
 	http_server = WSGIServer(('', 5000), app)
