@@ -34,7 +34,7 @@ import requests
 # =======================================
 
 # unconfigurable globals
-kiwi_home_dir = join(expanduser("~"), '.kiwi')
+home_dir = join(expanduser("~"), '.kiwi')
 
 class Kiwi:
 
@@ -107,30 +107,30 @@ class Kiwi:
 
 		def module(self, name):
 			return self._with_cache(argparse.Namespace(
-				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_modules_dir, name, self.config.kiwi_side.value),
-				local = join(self.config.kiwi_local_modules_dir, name, self.config.kiwi_side.value)
+				remote = join(self.config.remote_raw, self.config.remote_modules_dir, name, self.config.kiwi_side.value),
+				local = join(self.config.local_modules_dir, name, self.config.kiwi_side.value)
 			))
 
 		def meta(self, name):
 			return self._with_cache(argparse.Namespace(
-				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_modules_dir, name, "meta.txt"),
-				local = join(self.config.kiwi_local_modules_dir, name, "meta.txt")
+				remote = join(self.config.remote_raw, self.config.remote_modules_dir, name, "meta.txt"),
+				local = join(self.config.local_modules_dir, name, "meta.txt")
 			))
 
 		def runtime(self, module):
 			return self._with_cache(argparse.Namespace(
-				remote = join(self.config.kiwi_repo_raw, self.config.kiwi_repo_runtime_dir, module.value),
-				local = join(self.config.kiwi_local_runtime_dir, module.value)
+				remote = join(self.config.remote_raw, self.config.remote_runtime_dir, module.value),
+				local = join(self.config.local_runtime_dir, module.value)
 			))
 
 		def kiwi(self):
 			return self._with_cache(argparse.Namespace(
-				remote = join(self.config.kiwi_repo_raw, "kiwi"),
+				remote = join(self.config.remote_raw, "kiwi"),
 				local = os.path.abspath(__file__)
 			))
 
 		def _with_cache(self, asset):
-			asset.cache = join(self.config.kiwi_local_cache_dir, asset.local.replace("/", "_"))
+			asset.cache = join(self.config.local_cache_dir, asset.local.replace("/", "_"))
 			return asset
 
 		def up_to_date(self, asset):
@@ -184,21 +184,21 @@ class Kiwi:
 
 	# configurable vars
 	class Config:
-		kiwi_side = None
+		side = None
 
-		kiwi_repo_modules_dir = "modules/"
-		kiwi_repo_runtime_dir = "runtime/"
-		kiwi_repo_api = "https://api.github.com/repos/vlad-pbr/kiwi/contents/"
-		kiwi_repo_raw = "https://raw.githubusercontent.com/vlad-pbr/kiwi/master/"
+		remote_modules_dir = "modules/"
+		remote_runtime_dir = "runtime/"
+		remote_api = "https://api.github.com/repos/vlad-pbr/kiwi/contents/"
+		remote_raw = "https://raw.githubusercontent.com/vlad-pbr/kiwi/master/"
 
-		kiwi_local_modules_dir = join(kiwi_home_dir, "modules")
-		kiwi_local_runtime_dir = join(kiwi_home_dir, "runtime")
-		kiwi_local_modules_home_dir = join(kiwi_home_dir, "modules_home")
-		kiwi_local_cache_dir = None
+		local_modules_dir = join(home_dir, "modules")
+		local_runtime_dir = join(home_dir, "runtime")
+		local_modules_home_dir = join(home_dir, "modules_home")
+		local_cache_dir = None
 
 	def __init__(self, config_path=None, server=False):
 
-		default_config_path = join(kiwi_home_dir, "kiwi.conf")
+		default_config_path = join(home_dir, "kiwi.conf")
 
 		# determine config file existence
 		if config_path and not isfile(config_path):
@@ -219,34 +219,34 @@ class Kiwi:
 		self.Config.kiwi_side = self.Side.Server if server else self.Side.Client
 
 		# init cache directory if needed
-		if self.Config.kiwi_local_cache_dir is None:
-			self.Config.kiwi_local_cache_dir = mkdtemp()
+		if self.Config.local_cache_dir is None:
+			self.Config.local_cache_dir = mkdtemp()
 		else:
-			self.Helper.ensure_directory(self.Config.kiwi_local_cache_dir)
+			self.Helper.ensure_directory(self.Config.local_cache_dir)
 
 		# init runtime
 		self.runtime = self._Runtime(self._Assets(self.Config))
 
 		# init directories
 		for directory in [
-			self.Config.kiwi_local_modules_dir
+			self.Config.local_modules_dir
 		]:
 			self.Helper.ensure_directory(directory)
 
 	def __del__(self):
-		if self.Config.kiwi_local_cache_dir is not None:
-			rmtree(self.Config.kiwi_local_cache_dir)
+		if self.Config.local_cache_dir is not None:
+			rmtree(self.Config.local_cache_dir)
 
 	def get_installed_module_list(self):
-		return [module for module in os.listdir(self.Config.kiwi_local_modules_dir) if isfile(self.runtime.assets.module(module).local)]
+		return [module for module in os.listdir(self.Config.local_modules_dir) if isfile(self.runtime.assets.module(module).local)]
 
 	def get_remote_module_list(self):
-		modules_dir = loads(self.Helper.get(join(self.Config.kiwi_repo_api, self.Config.kiwi_repo_modules_dir)))
+		modules_dir = loads(self.Helper.get(join(self.Config.remote_api, self.Config.remote_modules_dir)))
 		remote = []
 
 		# get list of module directories
 		for module in modules_dir:
-			module_dir = loads(self.Helper.get(join(self.Config.kiwi_repo_api, self.Config.kiwi_repo_modules_dir, module['name'])))
+			module_dir = loads(self.Helper.get(join(self.Config.remote_api, self.Config.remote_modules_dir, module['name'])))
 
 			# find matching module file
 			for _file in module_dir:
@@ -382,7 +382,7 @@ class Kiwi:
 
 		def __init__(self, name, kiwi):
 			self.module_name = name
-			self.module_home = join(kiwi.Config.kiwi_local_modules_home_dir, name)
+			self.module_home = join(kiwi.Config.local_modules_home_dir, name)
 			self.module_desc = kiwi.get_module_description(name)
 
 			self.ensure_directory(self.module_home)
