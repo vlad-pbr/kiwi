@@ -26,7 +26,9 @@ def kiwi_main(kiwi):
 
 	# most kiwi modules use argparse, most also use docstring as description
 	parser = argparse.ArgumentParser(description=kiwi_main.__doc__, epilog=__doc__)
-	parser.add_argument('-n', '--name', help='who should be greeted?', type=str)
+	content_group = parser.add_mutually_exclusive_group()
+	content_group.add_argument('-n', '--name', help='who should be greeted?', type=str)
+	content_group.add_argument('-s', '--server', help='greet server', action='store_true')
 	args = parser.parse_args()
 
 	# 'kiwi' namespace passed to the module contains useful functions and variables
@@ -35,6 +37,10 @@ def kiwi_main(kiwi):
 			print('Hello to you too!')
 		else:
 			print('Hello, {}!'.format(args.name))
+
+	# if module has serverside logic - kiwi can query it
+	elif args.server:
+		print(kiwi.serverside())
 
 	# bait the first time user to read the instructions	
 	else:

@@ -186,6 +186,9 @@ class Kiwi:
 	class Config:
 		side = None
 
+		remote_host = "localhost"
+		remote_port = 5000
+
 		remote_modules_dir = "modules/"
 		remote_runtime_dir = "runtime/"
 		remote_api = "https://api.github.com/repos/vlad-pbr/kiwi/contents/"
@@ -379,11 +382,13 @@ class Kiwi:
 		module_name = None
 		module_home = None
 		module_desc = None
+		module_remote = None
 
 		def __init__(self, name, kiwi):
 			self.module_name = name
 			self.module_home = join(kiwi.Config.local_modules_home_dir, name)
 			self.module_desc = kiwi.get_module_description(name)
+			self.module_remote = join('http://{}:{}'.format(kiwi.Config.remote_host, kiwi.Config.remote_port), 'module', name)
 
 			self.ensure_directory(self.module_home)
 
@@ -404,6 +409,9 @@ class Kiwi:
 			except Exception as e:
 				self.report(e, 'could not write crash log')
 				return False
+
+		def serverside(self, path=''):
+			return self.get(join(self.module_remote, path))
 
 		@staticmethod
 		def parse_config(path):
