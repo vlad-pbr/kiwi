@@ -4,20 +4,33 @@ from os import listdir
 from os.path import join, isdir, exists
 from json import dumps
 
-from flask import Flask, request, abort
+from flask import Flask, request, abort, send_from_directory
 from gevent.pywsgi import WSGIServer
 
-app = Flask(__name__[:-3], static_url_path="/modules")
+kiwi = None
+api = {}
+assets = {}
+
+app = Flask(__name__[:-3])
 
 @app.route('/module/<path:module>')
 def module(module):
 	return "Path: " + module + " | Args: " + str(request.args)
 
-@app.route('/api/modules')
-@app.route('/api/modules/')
-@app.route('/api/modules/<path:path>')
-def module_api(path=''):
+def runtime_json(path):
+	return assets_json(kiwi.Config.local_runtime_dir, path)
 
+def runtime_asset(path):
+	return send_from_directory(kiwi.Config.local_runtime_dir, path)
+
+def modules_json(path):
+	return assets_json(kiwi.Config.local_modules_dir, path)
+
+def modules_asset(path):
+	return send_from_directory(kiwi.Config.local_modules_dir, path)
+
+def assets_json(source, path):
+	
 	# return file json
 	def file_json(file_path):
 		return { 
@@ -25,7 +38,7 @@ def module_api(path=''):
 			"type": "dir" if isdir(file_path) else "file",
 			}
 
-	abs_path = join(app.static_folder, path)
+	abs_path = join(source, path)
 
 	# 404 if file does not exist
 	if not exists(abs_path):
@@ -43,10 +56,35 @@ def module_api(path=''):
 
 	return dumps(response, indent=4)
 
-def run(kiwi):
+@app.route('/api/<asset>/')
+@app.route('/api/<asset>/<path:path>')
+def serve_api(asset, path=''):
+	return api[asset](path) if asset in api else abort(404)
 
-	# server modules as static files
-	app.static_folder = kiwi.Config.local_modules_dir
+@app.route('/assets/<asset>/<path:path>')
+def serve_asset(asset, path):
+	return assets[asset](path) if asset in assets else abort(404)
+
+def run(_kiwi):
+
+	global kiwi
+	global api
+	global assets
+
+	kiwi = _kiwi
+
+	# api endpoints
+	api = {
+		"modules": modules_json,
+		"runtime": runtime_json
+	}
+
+	# asset endpoints
+	assets = {
+		"modules": modules_asset,
+		"runtime": runtime_asset
+	}
 
 	http_server = WSGIServer(('', 5000), app)
 	http_server.serve_forever()
+	
