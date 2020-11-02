@@ -187,7 +187,7 @@ class Kiwi:
 		side = None
 
 		remote_host = "localhost"
-		remote_port = 5000
+		remote_port = '8080'
 
 		remote_modules_dir = "modules/"
 		remote_runtime_dir = "runtime/"
@@ -198,6 +198,8 @@ class Kiwi:
 		local_runtime_dir = join(home_dir, "runtime")
 		local_modules_home_dir = join(home_dir, "modules_home")
 		local_cache_dir = None
+
+		server_port = '8080'
 
 	def __init__(self, config_path=None, server=False):
 
