@@ -6,9 +6,8 @@ from os.path import join
 
 def run(kiwi, argv):
 
-	# register module name, drop kiwi from arguments
-	module_name = argv[1]
-	argv.pop(0)
+	# register module name
+	module_name = argv[0]
 
 	# if module is not installed - see if it exists on remote
 	if module_name not in kiwi.get_installed_module_list():
@@ -23,7 +22,7 @@ def run(kiwi, argv):
 			_, _, modules_failed = kiwi.fetch_modules(module_as_list)
 			if modules_failed:
 				sys.exit(1)
-				
+
 	# import module code
 	module = kiwi.import_module(module_name, kiwi.runtime.assets.module(module_name).local)
 
@@ -51,11 +50,11 @@ def run(kiwi, argv):
 
 		# run the module and log any exceptions coming from it
 		try:
-			rc = module.kiwi_main(helper)
-			sys.exit(rc if isinstance(rc, int) else 0)
+			return module.kiwi_main(helper)
 		except Exception:
 			ex_type, module_exception, module_traceback = sys.exc_info()
 			kiwi.say("module '{}' crashed with the following exception: {}".format(module_name, module_exception))
 			if helper.write_crashlog(ex_type, module_exception, module_traceback):
 				kiwi.say('detailed crash log can be found at {}'.format(join(helper.module_home, "crash.log")))
-			sys.exit(1)
+			
+			return None

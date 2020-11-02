@@ -5,6 +5,7 @@ from os.path import join, isdir, exists
 from json import dumps
 
 from flask import Flask, request, abort, send_from_directory
+from werkzeug.exceptions import HTTPException
 from gevent.pywsgi import WSGIServer
 
 kiwi = None
@@ -13,9 +14,17 @@ assets = {}
 
 app = Flask(__name__[:-3])
 
-@app.route('/module/<path:module>')
-def module(module):
-	return "Path: " + module + " | Args: " + str(request.args)
+@app.route('/module/<module>/')
+@app.route('/module/<module>/<path:path>')
+def module(module, path=''):
+	try:
+		response = kiwi.runtime.run(kiwi.runtime.Modules.Module, kiwi, [ module, path ])
+		
+		return response if response is not None else abort(500)
+	except HTTPException:
+		raise
+	except:
+		abort(500)
 
 def runtime_json(path):
 	return assets_json(kiwi.Config.local_runtime_dir, path)
@@ -87,4 +96,3 @@ def run(_kiwi):
 
 	http_server = WSGIServer(('', 5000), app)
 	http_server.serve_forever()
-	

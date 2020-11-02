@@ -63,7 +63,7 @@ class Kiwi:
 				# install missing module
 				self.assets.install(current_asset)
 
-			Kiwi.import_module('kiwi_' + module.value, current_asset.local).run(*args)
+			return Kiwi.import_module('kiwi_' + module.value, current_asset.local).run(*args)
 
 		def update(self, message):
 		
@@ -483,6 +483,7 @@ def main():
 	# module execution
 	elif len(sys.argv) > 1 and sys.argv[1][:1] != '-':
 		kiwi = Kiwi()
+		sys.argv.pop(0)
 		kiwi.runtime.run(kiwi.runtime.Modules.Module, kiwi, sys.argv)
 
 	# kiwi execution
