@@ -186,13 +186,13 @@ class Kiwi:
 	class Config:
 		side = None
 
-		remote_host = "localhost"
+		remote_host = "remote.imkiwi.me"
 		remote_port = '8080'
 
 		remote_modules_dir = "modules/"
 		remote_runtime_dir = "runtime/"
-		remote_api = "https://api.github.com/repos/vlad-pbr/kiwi/contents/"
-		remote_raw = "https://raw.githubusercontent.com/vlad-pbr/kiwi/master/"
+		remote_api = "http://remote.imkiwi.me/api/"
+		remote_raw = "http://remote.imkiwi.me/assets/"
 
 		local_modules_dir = join(home_dir, "modules")
 		local_runtime_dir = join(home_dir, "runtime")
