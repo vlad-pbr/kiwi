@@ -191,8 +191,8 @@ class Kiwi:
 
 		remote_modules_dir = "modules/"
 		remote_runtime_dir = "runtime/"
-		remote_api = "http://remote.imkiwi.me/api/"
-		remote_raw = "http://remote.imkiwi.me/assets/"
+		remote_api = "http://remote.imkiwi.me:8080/api/"
+		remote_raw = "http://remote.imkiwi.me:8080/assets/"
 
 		local_modules_dir = join(home_dir, "modules")
 		local_runtime_dir = join(home_dir, "runtime")
