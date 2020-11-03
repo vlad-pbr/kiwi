@@ -185,6 +185,7 @@ class Kiwi:
 	# configurable vars
 	class Config:
 		side = None
+		home_dir = home_dir
 
 		remote_host = "remote.imkiwi.me"
 		remote_port = '8080'
