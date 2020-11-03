@@ -51,9 +51,9 @@ def sine(val):
 def saw(val):
 	return ((val % (pi * 2)) / pi) - 1
 
-def kiwi_main(_):
+def kiwi_main(kiwi):
 
-	parser = argparse.ArgumentParser(description=kiwi_main.__doc__, epilog=__doc__)
+	parser = argparse.ArgumentParser(description=kiwi.module_desc, epilog=__doc__)
 
 	parser.add_argument('-f', '--frequency', help='oscillation frequency (Hz)', type=int, required=True)
 	parser.add_argument('-w', '--waveform', help='oscillation waveform', choices=waveform.list, required=True)

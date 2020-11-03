@@ -61,7 +61,7 @@ def format_log(log):
 
 def kiwi_main(kiwi):
 
-	parser = argparse.ArgumentParser(description=kiwi_main.__doc__,
+	parser = argparse.ArgumentParser(description=kiwi.module_desc,
 									 epilog=__doc__,
 									 formatter_class=argparse.RawDescriptionHelpFormatter)
 
