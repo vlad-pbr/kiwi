@@ -354,7 +354,7 @@ class Kiwi:
 
 		# recursive body resolving method
 		def _resolve_body(body):
-			
+						
 			for body_object in body:
 				if isinstance(body_object, ast.Import):
 					for name in body_object.names:

@@ -4,7 +4,8 @@ from os import listdir, kill, remove
 from os.path import join, isdir, exists, isfile
 from json import dumps
 from multiprocessing import Process
-from daemonize import Daemonize
+import daemon
+from daemon import pidfile
 
 from flask import Flask, request, abort, send_from_directory
 from werkzeug.exceptions import HTTPException
@@ -120,7 +121,7 @@ def run(_kiwi):
 
 	_kiwi.say('starting server...')
 
-	# toggle server process
+	# start server process
 	http_server = WSGIServer(('', int(_kiwi.Config.server_port)), app)
-	server_daemon = Daemonize(app=app.import_name, pid=pid_file_path, action=http_server.serve_forever)
-	server_daemon.start()
+	with daemon.DaemonContext(pidfile=pidfile.TimeoutPIDLockFile(pid_file_path)):
+		http_server.serve_forever()
