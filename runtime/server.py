@@ -123,5 +123,5 @@ def run(_kiwi):
 
 	# start server process
 	http_server = WSGIServer(('', int(_kiwi.Config.server_port)), app)
-	with daemon.DaemonContext(pidfile=pidfile.TimeoutPIDLockFile(pid_file_path)):
+	with daemon.DaemonContext(pidfile=pidfile.PIDLockFile(pid_file_path)):
 		http_server.serve_forever()
