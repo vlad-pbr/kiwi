@@ -9,7 +9,6 @@ from daemon import pidfile
 
 from flask import Flask, request, abort, send_from_directory
 from werkzeug.exceptions import HTTPException
-from gevent.pywsgi import WSGIServer
 
 kiwi = None
 api = {}
@@ -122,6 +121,8 @@ def run(_kiwi):
 	_kiwi.say('starting server...')
 
 	# start server process
-	http_server = WSGIServer(('', int(_kiwi.Config.server_port)), app)
 	with daemon.DaemonContext(pidfile=pidfile.PIDLockFile(pid_file_path)):
+		from gevent.pywsgi import WSGIServer
+
+		http_server = WSGIServer(('', int(_kiwi.Config.server_port)), app)
 		http_server.serve_forever()
