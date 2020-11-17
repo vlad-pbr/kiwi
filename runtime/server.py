@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 
 from os import listdir, kill, remove
-from os.path import join, isdir, exists, isfile
+from os.path import join, isdir, exists, isfile, realpath, dirname
 from json import dumps
 from multiprocessing import Process
-import daemon
-from daemon import pidfile
+from daemonize import Daemonize
 
 from flask import Flask, request, abort, send_from_directory
 from werkzeug.exceptions import HTTPException
@@ -39,6 +38,9 @@ def modules_json(path):
 
 def modules_asset(path):
 	return send_from_directory(kiwi.Config.local_modules_dir, path)
+
+def kiwi_asset():
+	return send_from_directory(kiwi.Config.local_runtime_dir, 'kiwi')
 
 def assets_json(source, path):
 	
@@ -75,6 +77,16 @@ def serve_api(asset, path=''):
 @app.route('/assets/<asset>/<path:path>')
 def serve_asset(asset, path):
 	return assets[asset](path) if asset in assets else abort(404)
+
+@app.route('/assets/kiwi/')
+def serve_kiwi():
+	return kiwi_asset()
+
+def start_server():
+	from gevent.pywsgi import WSGIServer
+
+	http_server = WSGIServer(('', int(kiwi.Config.server_port)), app)
+	http_server.serve_forever()
 
 def run(_kiwi):
 
@@ -121,8 +133,5 @@ def run(_kiwi):
 	_kiwi.say('starting server...')
 
 	# start server process
-	with daemon.DaemonContext(pidfile=pidfile.PIDLockFile(pid_file_path)):
-		from gevent.pywsgi import WSGIServer
-
-		http_server = WSGIServer(('', int(_kiwi.Config.server_port)), app)
-		http_server.serve_forever()
+	server = Daemonize(app=__name__, pid=pid_file_path, action=start_server)
+	server.start()

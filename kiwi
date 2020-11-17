@@ -126,7 +126,7 @@ class Kiwi:
 		def kiwi(self):
 			return self._with_cache(argparse.Namespace(
 				remote = join(self.config.remote_raw, "kiwi"),
-				local = os.path.abspath(__file__)
+				local = join(self.config.local_runtime_dir, os.path.abspath(__file__).split('/')[-1])
 			))
 
 		def _with_cache(self, asset):
@@ -235,9 +235,17 @@ class Kiwi:
 
 		# init directories
 		for directory in [
-			self.Config.local_modules_dir
+			self.Config.local_modules_dir,
+			self.Config.local_runtime_dir
 		]:
 			self.Helper.ensure_directory(directory)
+
+		# write kiwi symlink to runtime dir
+		kiwi_origin_path = os.path.abspath(__file__)
+		kiwi_symlink_path = join(self.Config.local_runtime_dir, kiwi_origin_path.split('/')[-1])
+
+		if not isfile(kiwi_symlink_path):
+			os.symlink(kiwi_origin_path, kiwi_symlink_path)
 
 	def __del__(self):
 		if self.Config.local_cache_dir is not None:
