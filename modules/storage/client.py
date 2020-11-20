@@ -35,7 +35,7 @@ def github_store(args):
 	headers = {'Content-type': 'application/json'}
 	commit_json = {
 		'message': args.message if args.message else 'No message',
-		'content': base64.b64encode(bytes(args.content), 'utf-8'),
+		'content': base64.b64encode(bytes(args.content, "utf-8")).decode(),
 		'committer': {}
 	}
 
@@ -201,10 +201,10 @@ def kiwi_main(kiwi):
                                 	arg.destination = os.path.join(arg.destination, args.filename)
 
 				if args.retrieve:
-					print(retrieve(arg), end=' ')
+					print(retrieve(arg))
 					return
 				elif args.list:
-					print(list_items(arg), end=' ')
+					print(list_items(arg))
 					return
 				else:
 
@@ -242,7 +242,7 @@ def kiwi_main(kiwi):
 				data = retrieve(args)
 
 				if not args.hide:
-					print(data, end=' ')
+					print(data, end='')
 
 				# store data in a file
 				if args.file:

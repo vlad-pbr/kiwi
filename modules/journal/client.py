@@ -23,11 +23,15 @@ def get_timestamp():
 	return datetime.now().strftime("%B %d, %Y at %H:%M")
 
 def command(cmd):
-	return Popen(shlex.split(cmd), stdout=PIPE).communicate()[0]
+	return Popen(shlex.split(cmd), stdout=PIPE).communicate()[0].decode()
 
-def read(kiwi, topic):
-	return command('kiwi storage source -r -S {} -n {}'.format(\
-                join(kiwi.module_home, 'sources'), topic))
+def read(kiwi, topic, from_file=None):
+	if not from_file:
+		return command('kiwi storage source -r -S {} -n {}'.format(\
+                	join(kiwi.module_home, 'sources'), topic))
+	
+	return command('kiwi storage retrieve -s file -d {}'.format(\
+		from_file))
 
 def get_topics(kiwi):
 	return command('kiwi storage source -l -S {}'.format(\
@@ -50,7 +54,7 @@ def write(kiwi, log, topic):
 	# use storage module to store the journal
 	stdout = command('kiwi storage source -S {} -m "{}" -n {} -c "{}"'.format(\
                 join(kiwi.module_home, 'sources'), get_timestamp(), topic, log))
-	print(stdout.rstrip(), end=' ')
+	print(stdout.rstrip())
 
 def format_log(log):
 	out = '-'*50 + '\n'
@@ -83,17 +87,21 @@ def kiwi_main(kiwi):
 
 	# list journals
 	elif args.list_topics:
-		print(get_topics(kiwi), end=' ')
+		print(get_topics(kiwi))
 
 	# print journal
 	elif not args.log and not args.file:
-		print(read(kiwi, args.topic), end=' ')
+		print(read(kiwi, args.topic)),
 
 	# write to journal
 	else:
 		log = args.log
 
 		if args.file:
-			log = read(kiwi, args.file)
+			if isfile(args.file):
+				log = read(kiwi, args.topic, args.file)
+			else:
+				print('Given file does not exist. Make sure the path to file is absolute.')
+				return
 
 		write(kiwi, log, args.topic)
