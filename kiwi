@@ -9,7 +9,7 @@ import importlib
 import subprocess
 import ast
 from enum import Enum
-from json import loads
+from json import loads, dumps
 from os.path import isfile, join, expanduser, getsize
 from hashlib import sha256
 from shutil import rmtree
@@ -37,8 +37,6 @@ import requests
 home_dir = join(expanduser("~"), '.kiwi')
 
 class Kiwi:
-
-	runtime = None
 
 	class _Runtime:
 
@@ -183,43 +181,67 @@ class Kiwi:
 		Server = "server.py"
 
 	# configurable vars
-	class Config:
-		side = None
-		home_dir = home_dir
+	class _Config:
+		_home_dir = home_dir
 
 		remote_host = "remote.imkiwi.me"
-		remote_port = '8080'
+		remote_port = 8080
 
 		remote_modules_dir = "modules/"
 		remote_runtime_dir = "runtime/"
 		remote_api = "http://remote.imkiwi.me:8080/api/"
 		remote_raw = "http://remote.imkiwi.me:8080/assets/"
 
-		local_modules_dir = join(home_dir, "modules")
-		local_runtime_dir = join(home_dir, "runtime")
-		local_modules_home_dir = join(home_dir, "modules_home")
+		local_modules_dir = join(_home_dir, "modules")
+		local_runtime_dir = join(_home_dir, "runtime")
+		local_modules_home_dir = join(_home_dir, "modules_home")
 		local_cache_dir = None
 
-		server_port = '8080'
+		server_port = 8080
+
+		def dump(self):
+			return dumps({ item:getattr(self, item) for item in self.__items__ }, indent=4) + "\n"
+
+		def __init__(self, config_path=None):
+			self.__items__ = [item for item in self.__class__.__dict__ if not item.startswith("_") and not callable(self.__getattribute__(item))]
+
+			if config_path:
+
+				with open(config_path, 'r') as config_file:
+					config_dict = loads(config_file.read())
+					
+					for item in self.__items__:
+						if item not in config_dict:
+							Kiwi.say("'{}' is not specified in '{}'".format(item, config_path))
+							exit(1)
+
+						setattr(self, item, config_dict[item])
 
 	def __init__(self, config_path=None, server=False):
 
-		default_config_path = join(home_dir, "kiwi.conf")
+		default_config_path = join(home_dir, "kiwi.json")
 
-		# determine config file existence
-		if config_path and not isfile(config_path):
-			self.say(config_path + " does not exist")
-			sys.exit(1)
-		elif isfile(default_config_path):
-			config_path = default_config_path
-
-		# parse optional config
+		# if custom config file is specified - try using it
 		if config_path:
-			config = self.Helper.parse_config(config_path)
 
-			# overwrite configurable variables if present
-			for var in [attr for attr in self.Config.__dict__ if not attr.startswith("__")]:
-				setattr(self.Config, var, config.get(var, self.Config.__dict__[var]))
+			if not isfile(config_path):
+				self.say(config_path + " does not exist")
+				sys.exit(1)
+
+			else:
+				self.Config = Kiwi._Config(config_path)
+
+		else:
+
+			# if default config does not exist - dump it
+			if not isfile(default_config_path):
+				self.Config = Kiwi._Config()
+				with open(default_config_path, 'w') as default_config:
+					default_config.write(self.Config.dump())
+
+			# use config in default location
+			else:
+				self.Config = Kiwi._Config(default_config_path)
 
 		# set server bool
 		self.Config.kiwi_side = self.Side.Server if server else self.Side.Client
@@ -248,8 +270,10 @@ class Kiwi:
 			os.symlink(kiwi_origin_path, kiwi_symlink_path)
 
 	def __del__(self):
-		if self.Config.local_cache_dir is not None:
+		try:
 			rmtree(self.Config.local_cache_dir)
+		except:
+			pass
 
 	def get_installed_module_list(self):
 		return [module for module in os.listdir(self.Config.local_modules_dir) if isfile(self.runtime.assets.module(module).local)]
