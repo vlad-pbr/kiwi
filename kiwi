@@ -233,11 +233,9 @@ class Kiwi:
 
 		else:
 
-			# if default config does not exist - dump it
+			# if default config does not exist - load from default
 			if not isfile(default_config_path):
 				self.Config = Kiwi._Config()
-				with open(default_config_path, 'w') as default_config:
-					default_config.write(self.Config.dump())
 
 			# use config in default location
 			else:
@@ -546,6 +544,7 @@ def main():
 		group.add_argument('-u', '--update-modules', nargs='*')
 		group.add_argument('-U', '--self-update', action='store_true')
 		group.add_argument('-c', '--config', type=str)
+		group.add_argument('-d', '--dump-config', type=str)
 
 		args = parser.parse_args()
 
