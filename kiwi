@@ -25,11 +25,12 @@ def resolve(package):
 		subprocess.call([sys.executable, "-m", "pip", "install", "--user", "--no-cache-dir", package])
 
 # resolve not built-in python packages
-for dep in ['requests']:
+for dep in ['requests', 'jsonpickle']:
 	resolve(dep)
 
 # import resolved packages
 import requests
+import jsonpickle
 
 # =======================================
 
@@ -442,8 +443,10 @@ class Kiwi:
 				self.report(e, 'could not write crash log')
 				return False
 
-		def serverside(self, path='', timeout=10):
-			return self.get(join(self.module_remote, path), timeout)
+		def request(self, request, timeout=10):
+
+			# post to remote kiwi
+			return requests.post(self.module_remote, json=jsonpickle.encode(request), timeout=timeout)
 
 		@staticmethod
 		def report(e, description=None, fatal=False):
@@ -530,7 +533,7 @@ def main():
 		args = parser.parse_args()
 
 		# init kiwi
-		kiwi = Kiwi(args.config, args.server)
+		kiwi = Kiwi(args.config, args.server or args.start_server)
 
 		# start kiwi server
 		if args.start_server:

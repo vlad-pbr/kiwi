@@ -20,29 +20,33 @@ https://github.com/vlad-pbr/kiwi/blob/master/modules/helloworld/client.py
 kiwi_dependencies = []
 
 import argparse
+from requests import Request
 
 # the basic requirement for a kiwi module is to have a kiwi_main() method
 def kiwi_main(kiwi):
 
 	# most kiwi modules use argparse, most also use docstring as description
 	parser = argparse.ArgumentParser(description=kiwi_main.__doc__, epilog=__doc__)
-	content_group = parser.add_mutually_exclusive_group()
-	content_group.add_argument('-n', '--name', help='who should be greeted?', type=str)
-	content_group.add_argument('-s', '--server', help='greet server', action='store_true')
+	parser.add_argument('-n', '--name', help='who should be greeted?', type=str)
+	parser.add_argument('-s', '--server', help='greet server', action='store_true')
 	args = parser.parse_args()
 
-	# 'kiwi' namespace passed to the module contains useful functions and variables
-	if args.name:
-		if args.name == kiwi.module_name:
-			print('Hello to you too!')
+	if not args.server:
+
+		# bait the first time user to read the instructions	
+		if not args.name:
+			print('Hello, world!')
+			print('Tip: use --help flag to see how you greet others!')
+
 		else:
-			print('Hello, {}!'.format(args.name))
+
+			# 'kiwi' namespace passed to the module contains useful functions and variables
+			if args.name == kiwi.module_name:
+				print('Hello to you too!')
+			else:
+				print('Hello, {}!'.format(args.name))
 
 	# if module has serverside logic - kiwi can query it
-	elif args.server:
-		print(kiwi.serverside())
-
-	# bait the first time user to read the instructions	
 	else:
-		print('Hello, world!')
-		print('Tip: use --help flag to see how you greet others!')
+		params = {} if not args.name else { 'name': args.name }
+		print(kiwi.request(Request('GET', params=params)).text)

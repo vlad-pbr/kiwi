@@ -9,18 +9,28 @@ from daemonize import Daemonize
 from flask import Flask, request, abort, send_from_directory
 from werkzeug.exceptions import HTTPException
 
+import requests
+import jsonpickle
+
+class Ingress:
+
+	def __init__(self, request):
+		self.request = request
+
+	def handle(self, app):
+		pass
+
 kiwi = None
 api = {}
 assets = {}
 
 app = Flask(__name__[:-3])
 
-@app.route('/module/<module>/')
-@app.route('/module/<module>/<path:path>')
-def module(module, path=''):
+@app.route('/module/<module>/', methods = ['POST'])
+def module(module):
 	try:
-		response = kiwi.runtime.run(kiwi.runtime.Modules.Module, kiwi, [ module, path ])
-		
+		response = kiwi.runtime.run(kiwi.runtime.Modules.Module, kiwi, [ module, Ingress(jsonpickle.decode(request.get_json())) ])
+
 		return response if response is not None else abort(500)
 	except HTTPException:
 		raise
