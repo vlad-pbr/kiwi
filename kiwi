@@ -523,6 +523,7 @@ def main():
 		group.add_argument('-g', '--get-modules', nargs='*')
 		group.add_argument('-u', '--update-modules', nargs='*')
 		group.add_argument('-U', '--self-update', action='store_true')
+		group.add_argument('-S', '--start-server', action='store_true')
 		group.add_argument('-c', '--config', type=str)
 		group.add_argument('-d', '--dump-config', type=str)
 
@@ -532,7 +533,7 @@ def main():
 		kiwi = Kiwi(args.config, args.server)
 
 		# start kiwi server
-		if args.server and len(sys.argv) == 2:
+		if args.start_server:
 			kiwi.runtime.run(kiwi.runtime.Modules.Server, kiwi)
 
 		# pass arguments to kiwi client
