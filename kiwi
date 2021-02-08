@@ -132,7 +132,7 @@ class Kiwi:
 			return asset
 
 		def up_to_date(self, asset):
-			remote_data = Kiwi.Helper.get(asset.remote)
+			remote_data = Kiwi.Helper.get(asset.remote, self.config.requests_timeout_seconds)
 
 			# cache remote file
 			with open(asset.cache, 'w') as cache:
@@ -164,7 +164,7 @@ class Kiwi:
 
 					# overwrite from remote
 					else:
-						Kiwi.Helper.overwrite(local, Kiwi.Helper.get(asset.remote))
+						Kiwi.Helper.overwrite(local, Kiwi.Helper.get(asset.remote, self.config.requests_timeout_seconds))
 
 			finally:
 
@@ -191,6 +191,8 @@ class Kiwi:
 		remote_runtime_dir = "runtime/"
 		remote_api = "http://remote.imkiwi.me:8080/api/"
 		remote_raw = "http://remote.imkiwi.me:8080/assets/"
+
+		requests_timeout_seconds = 10
 
 		local_modules_dir = join(_home_dir, "modules")
 		local_runtime_dir = join(_home_dir, "runtime")
@@ -274,12 +276,12 @@ class Kiwi:
 		return [module for module in os.listdir(self.Config.local_modules_dir) if isfile(self.runtime.assets.module(module).local)]
 
 	def get_remote_module_list(self):
-		modules_dir = loads(self.Helper.get(join(self.Config.remote_api, self.Config.remote_modules_dir)))
+		modules_dir = loads(self.Helper.get(join(self.Config.remote_api, self.Config.remote_modules_dir), self.Config.requests_timeout_seconds))
 		remote = []
 
 		# get list of module directories
 		for module in modules_dir:
-			module_dir = loads(self.Helper.get(join(self.Config.remote_api, self.Config.remote_modules_dir, module['name'])))
+			module_dir = loads(self.Helper.get(join(self.Config.remote_api, self.Config.remote_modules_dir, module['name']), self.Config.requests_timeout_seconds))
 
 			# find matching module file
 			for _file in module_dir:
@@ -440,8 +442,8 @@ class Kiwi:
 				self.report(e, 'could not write crash log')
 				return False
 
-		def serverside(self, path=''):
-			return self.get(join(self.module_remote, path))
+		def serverside(self, path='', timeout=10):
+			return self.get(join(self.module_remote, path), timeout)
 
 		@staticmethod
 		def report(e, description=None, fatal=False):
@@ -464,8 +466,8 @@ class Kiwi:
 					return response
 		
 		@staticmethod
-		def get(url):
-			response = requests.get(url)
+		def get(url, timeout=10):
+			response = requests.get(url, timeout=timeout)
 			response.raise_for_status()
 			return response.text
 
