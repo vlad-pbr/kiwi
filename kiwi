@@ -444,25 +444,6 @@ class Kiwi:
 			return self.get(join(self.module_remote, path))
 
 		@staticmethod
-		def parse_config(path):
-			args = {}
-
-			with open(path, 'r') as args_file:
-				for index, arg in enumerate(args_file):
-					arg = arg.strip()
-					try:
-						# ignore lines that are empty or commented out
-						if arg and arg[0] != '#':
-							kv = arg.split('=', 1)
-							args[kv[0].strip()] = kv[1].strip()
-
-					# at this point any error is a syntax error
-					except Exception as e:
-						Kiwi.Helper.report(e, '{}: syntax error on line {}: "{}"'.format(path, index + 1, arg), True)
-
-			return args
-
-		@staticmethod
 		def report(e, description=None, fatal=False):
 			print('Error:', end=' ')
 			print(e if not description else '{} ({})'.format(description, e))

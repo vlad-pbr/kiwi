@@ -18,12 +18,30 @@ from requests import get
 from random import randint
 from sys import argv, exit
 
+def parse_config(path, kiwi):
+	args = {}
+
+	with open(path, 'r') as args_file:
+		for index, arg in enumerate(args_file):
+			arg = arg.strip()
+			try:
+				# ignore lines that are empty or commented out
+				if arg and arg[0] != '#':
+					kv = arg.split('=', 1)
+					args[kv[0].strip()] = kv[1].strip()
+
+			# at this point any error is a syntax error
+			except Exception as e:
+				kiwi.report(e, '{}: syntax error on line {}: "{}"'.format(path, index + 1, arg), True)
+
+	return args
+
 def get_url(kiwi):
 	videoId = 'DWcJFNfaw9c'
 
 	config_path = join(kiwi.module_home, kiwi.module_name + '.conf')
 	if isfile(config_path):
-		config_file = kiwi.parse_config(config_path)
+		config_file = parse_config(config_path, kiwi)
 		link = config_file.get('link')
 		key = config_file.get('key')
 

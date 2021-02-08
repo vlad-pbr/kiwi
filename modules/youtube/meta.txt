@@ -1,0 +1,1 @@
+Quickly play a YouTube video based on query
