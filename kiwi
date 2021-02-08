@@ -447,6 +447,7 @@ class Kiwi:
 
 			# post request to remote kiwi as payload
 			response = requests.post(self.module_remote, json=jsonpickle.encode(request), timeout=timeout)
+			response.raise_for_status()
 			return jsonpickle.decode(response.text)
 
 		@staticmethod
