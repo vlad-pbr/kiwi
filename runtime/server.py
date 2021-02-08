@@ -7,6 +7,7 @@ from multiprocessing import Process
 from daemonize import Daemonize
 from tempfile import mkstemp
 from requests_unixsocket import Session
+from requests.exceptions import ConnectionError
 from urllib.parse import quote
 from threading import Thread
 from time import sleep
@@ -42,15 +43,21 @@ class Ingress:
 		# run server on unix socket
 		def run_server():
 			run_simple("unix://{}".format(self.socket_path), port=8080, application=app)
+		Thread(target=run_server, daemon=True).start()
 
-		# start server thread
-		server_thread = Thread(target=run_server, daemon=True)
-		server_thread.start()
-		sleep(1) # TODO this sucks
+		# new socket session
+		socket_session = Session()
 
-		# query unix socket
-		with Session() as socket_session:
-			return socket_session.send(request=self.request)
+		# query socket until received a valid response
+		while True:
+			try:
+				return socket_session.send(request=self.request)
+			except ConnectionError:
+				sleep(0.1)
+			except:
+				return None
+			finally:
+				socket_session.close()
 
 kiwi = None
 api = {}
