@@ -1,24 +1,56 @@
 #!/usr/bin/env python3
 
-from os import listdir, kill, remove
+from os import listdir, kill, remove, close
 from os.path import join, isdir, exists, isfile, realpath, dirname
 from json import dumps
 from multiprocessing import Process
 from daemonize import Daemonize
+from tempfile import mkstemp
+from requests_unixsocket import Session
+from urllib.parse import quote
+from threading import Thread
+from time import sleep
 
 from flask import Flask, request, abort, send_from_directory
 from werkzeug.exceptions import HTTPException
+from werkzeug.serving import run_simple
 
-import requests
 import jsonpickle
 
 class Ingress:
 
 	def __init__(self, request):
 		self.request = request
+		self.socket_fd, self.socket_path = mkstemp()
+
+		# take care of slash edge cases
+		if self.request.url:
+			self.request.url = self.request.url if request.url[0] != '/' else self.request.url[1:]
+		else:
+			self.request.url = ''
+
+		# set url to unix socket and prepare
+		request.url = "http+unix://{}/{}".format(quote(self.socket_path, safe=''), request.url)
+		self.request = request.prepare()
+
+	def __del__(self):
+		close(self.socket_fd)
+		remove(self.socket_path)
 
 	def handle(self, app):
-		pass
+
+		# run server on unix socket
+		def run_server():
+			run_simple("unix://{}".format(self.socket_path), port=8080, application=app)
+
+		# start server thread
+		server_thread = Thread(target=run_server, daemon=True)
+		server_thread.start()
+		sleep(1) # TODO this sucks
+
+		# query unix socket
+		with Session() as socket_session:
+			return socket_session.send(request=self.request)
 
 kiwi = None
 api = {}
@@ -29,9 +61,23 @@ app = Flask(__name__[:-3])
 @app.route('/module/<module>/', methods = ['POST'])
 def module(module):
 	try:
-		response = kiwi.runtime.run(kiwi.runtime.Modules.Module, kiwi, [ module, Ingress(jsonpickle.decode(request.get_json())) ])
 
-		return response if response is not None else abort(500)
+		# new ingress object for received request
+		ingress = Ingress(jsonpickle.decode(request.get_json()))
+
+		# get response from serverside module
+		response = kiwi.runtime.run(kiwi.runtime.Modules.Module, kiwi, [ module ], ingress )
+
+		# finalize ingress object
+		ingress.__del__()
+
+		# response is not allowed to be None
+		if response is None:
+			abort(500)
+
+		# return serialized response object
+		return jsonpickle.encode(response)
+
 	except HTTPException:
 		raise
 	except:

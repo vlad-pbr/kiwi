@@ -4,7 +4,7 @@ import sys
 from os import chdir
 from os.path import join
 
-def run(kiwi, argv):
+def run(kiwi, argv, *ingress):
 
 	# register module name
 	module_name = argv[0]
@@ -50,7 +50,7 @@ def run(kiwi, argv):
 
 		# run the module and log any exceptions coming from it
 		try:
-			return module.kiwi_main(helper)
+			return module.kiwi_main(helper, *ingress)
 		except Exception:
 			ex_type, module_exception, module_traceback = sys.exc_info()
 			kiwi.say("module '{}' crashed with the following exception: {}".format(module_name, module_exception))

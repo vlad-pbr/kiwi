@@ -445,8 +445,9 @@ class Kiwi:
 
 		def request(self, request, timeout=10):
 
-			# post to remote kiwi
-			return requests.post(self.module_remote, json=jsonpickle.encode(request), timeout=timeout)
+			# post request to remote kiwi as payload
+			response = requests.post(self.module_remote, json=jsonpickle.encode(request), timeout=timeout)
+			return jsonpickle.decode(response.text)
 
 		@staticmethod
 		def report(e, description=None, fatal=False):
