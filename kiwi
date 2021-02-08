@@ -211,11 +211,8 @@ class Kiwi:
 					config_dict = loads(config_file.read())
 					
 					for item in self.__items__:
-						if item not in config_dict:
-							Kiwi.say("'{}' is not specified in '{}'".format(item, config_path))
-							exit(1)
-
-						setattr(self, item, config_dict[item])
+						if item in config_dict:
+							setattr(self, item, config_dict[item])
 
 	def __init__(self, config_path=None, server=False):
 
