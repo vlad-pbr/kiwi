@@ -8,6 +8,7 @@ import os
 import importlib
 import subprocess
 import ast
+import shlex
 from enum import Enum
 from json import loads, dumps
 from os.path import isfile, join, expanduser, getsize
@@ -36,6 +37,9 @@ import jsonpickle
 
 # unconfigurable globals
 home_dir = join(expanduser("~"), '.kiwi')
+
+# global kiwi instance
+KIWI = None
 
 class Kiwi:
 
@@ -417,11 +421,11 @@ class Kiwi:
 		module_desc = None
 		module_remote = None
 
-		def __init__(self, name, kiwi):
+		def __init__(self, name):
 			self.module_name = name
-			self.module_home = join(kiwi.Config.local_modules_home_dir, name)
-			self.module_desc = kiwi.get_module_description(name)
-			self.module_remote = join('http://{}:{}'.format(kiwi.Config.remote_host, kiwi.Config.remote_port), 'module', name)
+			self.module_home = join(KIWI.Config.local_modules_home_dir, name)
+			self.module_desc = KIWI.get_module_description(name)
+			self.module_remote = join('http://{}:{}'.format(KIWI.Config.remote_host, KIWI.Config.remote_port), 'module', name)
 
 			self.ensure_directory(self.module_home)
 
@@ -449,6 +453,25 @@ class Kiwi:
 			response = requests.post(self.module_remote, json=jsonpickle.encode(request), timeout=timeout)
 			response.raise_for_status()
 			return jsonpickle.decode(response.text)
+
+		@staticmethod
+		def module(module, arguments):
+
+			# ensure module presence
+			_, _, modules_failed = KIWI.fetch_modules([ module ], quiet=True)
+			if modules_failed:
+				KIWI.say('could not resolve the following dependency: {}'.format(modules_failed))
+				sys.exit(1)
+
+			# set new argv
+			argv_backup = sys.argv
+			sys.argv = [ module ] + shlex.split(arguments)
+
+			# run module with arguments
+			try:
+				return KIWI.runtime.run(KIWI.runtime.Modules.Module, KIWI, sys.argv)
+			finally:
+				sys.argv = argv_backup
 
 		@staticmethod
 		def report(e, description=None, fatal=False):
@@ -500,6 +523,8 @@ def main():
 	* To run a module, use 'kiwi [module]'
 	"""
 
+	global KIWI
+
 	# no arguments passed
 	if len(sys.argv) == 1:
 
@@ -508,9 +533,9 @@ def main():
 
 	# module execution
 	elif len(sys.argv) > 1 and sys.argv[1][:1] != '-':
-		kiwi = Kiwi()
+		KIWI = Kiwi()
 		sys.argv.pop(0)
-		kiwi.runtime.run(kiwi.runtime.Modules.Module, kiwi, sys.argv)
+		KIWI.runtime.run(KIWI.runtime.Modules.Module, KIWI, sys.argv)
 
 	# kiwi execution
 	else:
@@ -535,15 +560,15 @@ def main():
 		args = parser.parse_args()
 
 		# init kiwi
-		kiwi = Kiwi(args.config, args.server or args.start_server)
+		KIWI = Kiwi(args.config, args.server or args.start_server)
 
 		# start kiwi server
 		if args.start_server:
-			kiwi.runtime.run(kiwi.runtime.Modules.Server, kiwi)
+			KIWI.runtime.run(KIWI.runtime.Modules.Server, KIWI)
 
 		# pass arguments to kiwi client
 		else:
-			kiwi.runtime.run(kiwi.runtime.Modules.Client, kiwi, args)
+			KIWI.runtime.run(KIWI.runtime.Modules.Client, KIWI, args)
 
 if __name__ == "__main__":
         main()

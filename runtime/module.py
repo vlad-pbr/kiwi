@@ -30,20 +30,9 @@ def run(kiwi, argv, *ingress):
 	if not hasattr(module, 'kiwi_main'):
 		kiwi.say("'{}' is not my module (missing kiwi_main() method)".format(module_name))
 	else:
-			
-		# resolve dependencies
-		if hasattr(module, 'kiwi_dependencies'):
-			dependencies = set(module.kiwi_dependencies) - set(kiwi.get_installed_module_list())
-			if dependencies:
-				_, _, modules_failed = kiwi.fetch_modules(dependencies)
-				if modules_failed:
-					kiwi.say('could not resolve the following dependencies: {}'.format(', '.join(modules_failed)))
-					print("Possible solutions:")
-					print("\t* sudo kiwi -g {}".format(' '.join(modules_failed)))
-					sys.exit(1)
 
 		# kiwi helper functions and variables
-		helper = kiwi.Helper(module_name, kiwi)
+		helper = kiwi.Helper(module_name)
 
 		# change directory to module directory
 		chdir(helper.module_home)
