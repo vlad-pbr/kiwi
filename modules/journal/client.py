@@ -22,20 +22,17 @@ import shlex
 def get_timestamp():
 	return datetime.now().strftime("%B %d, %Y at %H:%M")
 
-def command(cmd):
-	return Popen(shlex.split(cmd), stdout=PIPE).communicate()[0].decode()
-
 def read(kiwi, topic, from_file=None):
 	if not from_file:
-		return command('kiwi storage source -r -S {} -n {}'.format(\
-                	join(kiwi.module_home, 'sources'), topic))
+		_, content = kiwi.module('storage', 'source -r -S {} -n {}'.format(join(kiwi.module_home, 'sources'), topic))
+		return content
 	
-	return command('kiwi storage retrieve -s file -d {}'.format(\
-		from_file))
+	_, content = kiwi.module('storage', 'retrieve -s file -d {}'.format(from_file))
+	return content
 
 def get_topics(kiwi):
-	return command('kiwi storage source -l -S {}'.format(\
-                join(kiwi.module_home, 'sources')))
+	_, topics = kiwi.module('storage', "source -l -S {}".format(join(kiwi.module_home, 'sources')))
+	return topics
 
 def write(kiwi, log, topic):
 
@@ -52,8 +49,8 @@ def write(kiwi, log, topic):
 		log = journal + format_log(log)
 
 	# use storage module to store the journal
-	stdout = command('kiwi storage source -S {} -m "{}" -n {} -c "{}"'.format(\
-                join(kiwi.module_home, 'sources'), get_timestamp(), topic, log))
+	_, stdout = kiwi.module('storage', 'source -S {} -m "{}" -n {} -c "{}"'.format(join(kiwi.module_home, 'sources'), get_timestamp(), topic, log))
+
 	print(stdout.rstrip())
 
 def format_log(log):
