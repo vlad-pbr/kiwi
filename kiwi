@@ -535,7 +535,7 @@ def main():
 	elif len(sys.argv) > 1 and sys.argv[1][:1] != '-':
 		KIWI = Kiwi()
 		sys.argv.pop(0)
-		KIWI.runtime.run(KIWI.runtime.Modules.Module, KIWI, sys.argv)
+		return KIWI.runtime.run(KIWI.runtime.Modules.Module, KIWI, sys.argv)
 
 	# kiwi execution
 	else:
@@ -564,11 +564,11 @@ def main():
 
 		# start kiwi server
 		if args.start_server:
-			KIWI.runtime.run(KIWI.runtime.Modules.Server, KIWI)
+			return KIWI.runtime.run(KIWI.runtime.Modules.Server, KIWI)
 
 		# pass arguments to kiwi client
 		else:
-			KIWI.runtime.run(KIWI.runtime.Modules.Client, KIWI, args)
+			return KIWI.runtime.run(KIWI.runtime.Modules.Client, KIWI, args)
 
 if __name__ == "__main__":
         main()
