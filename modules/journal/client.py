@@ -16,8 +16,9 @@ kiwi_dependencies = ['storage']
 import argparse
 from os.path import isfile, join
 from datetime import datetime
-from subprocess import Popen, PIPE
-import shlex
+from subprocess import call
+from tempfile import mkstemp
+from os import remove, close
 
 def get_timestamp():
 	return datetime.now().strftime("%B %d, %Y at %H:%M")
@@ -68,7 +69,7 @@ def kiwi_main(kiwi):
 
 	# log content options
 	content_group = parser.add_mutually_exclusive_group()
-	content_group.add_argument('-l', '--log', help='string content to be stored in a journal', type=str)
+	content_group.add_argument('-l', '--log', help='directly write content to be stored in a journal', action='store_true')
 	content_group.add_argument('-f', '--file', help='path to the content to be stored in a journal', type=str)
 
 	# journal actions
@@ -92,13 +93,26 @@ def kiwi_main(kiwi):
 
 	# write to journal
 	else:
-		log = args.log
 
+		# read from file
 		if args.file:
 			if isfile(args.file):
 				log = read(kiwi, args.topic, args.file)
 			else:
 				print('Given file does not exist. Make sure the path to file is absolute.')
 				return
+
+		# get log from editor
+		else:
+
+			# create new temp file and prompt
+			log_file_fd, log_file_path = mkstemp()
+			close(log_file_fd)
+			call('vi {}'.format(log_file_path), shell=True)
+
+			# read from temp file and delete
+			with open(log_file_path, 'r') as log_file:
+				log = log_file.read()
+			remove(log_file_path)
 
 		write(kiwi, log, args.topic)
