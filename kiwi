@@ -16,6 +16,7 @@ from hashlib import sha256
 from shutil import rmtree
 from datetime import datetime
 from tempfile import mkdtemp
+from io import StringIO
 
 # package resolution method =============
 def resolve(package):
@@ -467,11 +468,18 @@ class Kiwi:
 			argv_backup = sys.argv
 			sys.argv = [ module ] + shlex.split(arguments)
 
+			# backup stdout
+			stdout_backup = sys.stdout
+			stdout = StringIO()
+			sys.stdout = stdout
+
 			# run module with arguments
 			try:
-				return KIWI.runtime.run(KIWI.runtime.Modules.Module, KIWI, sys.argv)
+				ret = KIWI.runtime.run(KIWI.runtime.Modules.Module, KIWI, sys.argv)
+				return ret, stdout.getvalue()
 			finally:
 				sys.argv = argv_backup
+				sys.stdout = stdout_backup
 
 		@staticmethod
 		def report(e, description=None, fatal=False):
