@@ -417,11 +417,6 @@ class Kiwi:
 
 	class Helper:
 
-		module_name = None
-		module_home = None
-		module_desc = None
-		module_remote = None
-
 		def __init__(self, name):
 			self.module_name = name
 			self.module_home = join(KIWI.Config.local_modules_home_dir, name)
