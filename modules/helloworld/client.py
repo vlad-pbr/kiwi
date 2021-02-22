@@ -3,7 +3,7 @@
 # Hi!
 #
 # This is a general template for a kiwi module. Comments below will guide you around.
-# Copy this code, edit it, plug it into the module directory (/etc/kiwi/modules/<module-name>/client.py by default) and you're done.
+# Copy this code, edit it, plug it into the module directory (~/.kiwi/modules/<module-name>/client.py by default) and you're done.
 # I tried to keep it as minimal as possible. Have fun!
 #
 # ~ Vlad
@@ -13,11 +13,6 @@ This module shows you all of the features kiwi provides to its modules.
 Should you wish to write your own module, use this module's code as a template:
 https://github.com/vlad-pbr/kiwi/blob/master/modules/helloworld/client.py
 '''
-
-# this optional variable is a list of kiwi modules that this module utilizes
-# kiwi will read this list and fetch the missing modules before running this module
-# a good example would be the 'journal' module which uses the 'storage' module
-kiwi_dependencies = []
 
 import argparse
 from requests import Request
