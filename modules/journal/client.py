@@ -3,15 +3,13 @@
 """
 Usage examples:
 
-	* kiwi journal -t diary -l "The weather was nice today."
+	* kiwi journal -t diary -l
 	* kiwi journal -t writing -f /path/to/a/new/story/I/wrote.txt
 
 You can use this module to keep tabs on basically anything: log day to day stuff or keep memos of things.
 I personally needed this module when learning how to drive and getting my license.
 It really helped me keep tabs on my progress and see how many lessons I've done and money I spent.
 """
-
-kiwi_dependencies = ['storage']
 
 import argparse
 from os.path import isfile, join
