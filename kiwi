@@ -46,8 +46,6 @@ class Kiwi:
 
 	class _Runtime:
 
-		assets = None
-
 		class Modules(Enum):
 			Client = "client.py"
 			Server = "server.py"
@@ -103,8 +101,6 @@ class Kiwi:
 			return False
 
 	class _Assets:
-
-		config = None
 
 		def __init__(self, config):
 			self.config = config
@@ -190,8 +186,7 @@ class Kiwi:
 	class _Config:
 		_home_dir = home_dir
 
-		remote_host = "remote.imkiwi.me"
-		remote_port = 8080
+		remote_endpoint = "http://remote.imkiwi.me:8080"
 
 		remote_modules_dir = "modules/"
 		remote_runtime_dir = "runtime/"
@@ -421,7 +416,7 @@ class Kiwi:
 			self.module_name = name
 			self.module_home = join(KIWI.Config.local_modules_home_dir, name)
 			self.module_desc = KIWI.get_module_description(name)
-			self.module_remote = join('http://{}:{}'.format(KIWI.Config.remote_host, KIWI.Config.remote_port), 'module', name)
+			self.module_remote = join(KIWI.Config.remote_endpoint, 'module', name)
 
 			self.ensure_directory(self.module_home)
 
