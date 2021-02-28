@@ -19,22 +19,6 @@ from tempfile import mkdtemp
 from io import StringIO
 from inspect import isclass
 
-# package resolution method =============
-def resolve(package):
-
-	try:
-		importlib.import_module(package)
-	except ImportError:
-		subprocess.call([sys.executable, "-m", "pip", "install", "--user", "--no-cache-dir", package])
-
-# resolve not built-in python packages
-for dep in ['requests', 'jsonpickle']:
-	resolve(dep)
-
-# import resolved packages
-import requests
-import jsonpickle
-
 # various global utilities ==============
 
 class Utils:
@@ -50,7 +34,23 @@ class Utils:
 	def isExported(target_class):
 		return Utils._exported_attribute in target_class.__dict__ and target_class.__dict__[Utils._exported_attribute] is True
 
+	@staticmethod
+	def resolve(package):
+
+		try:
+			importlib.import_module(package)
+		except ImportError:
+			subprocess.call([sys.executable, "-m", "pip", "install", "--user", "--no-cache-dir", package])
+
 # =======================================
+
+# resolve not built-in python packages
+for dep in ['requests', 'jsonpickle']:
+	Utils.resolve(dep)
+
+# import resolved packages
+import requests
+import jsonpickle
 
 # unconfigurable globals
 home_dir = join(expanduser("~"), '.kiwi')
@@ -476,9 +476,9 @@ class Kiwi:
 			for body_object in body:
 				if isinstance(body_object, ast.Import):
 					for name in body_object.names:
-						resolve(name.name)
+						Utils.resolve(name.name)
 				elif isinstance(body_object, ast.ImportFrom):
-					resolve(body_object.module.split('.')[0])
+					Utisl.resolve(body_object.module.split('.')[0])
 				elif hasattr(body_object, 'body'):
 					_resolve_body(body_object.body)
 
