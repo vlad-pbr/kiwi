@@ -35,14 +35,20 @@ for dep in ['requests', 'jsonpickle']:
 import requests
 import jsonpickle
 
-# exported configuration related ========
+# various global utilities ==============
 
-def exported(class_to_export):
-	setattr(class_to_export, "__exported__", True)
-	return class_to_export
+class Utils:
 
-def isExported(target_class):
-	return "__exported__" in target_class.__dict__ and target_class.__dict__["__exported__"] is True
+	_exported_attribute = "__exported__"
+
+	@staticmethod
+	def exported(class_to_export):
+		setattr(class_to_export, Utils._exported_attribute, True)
+		return class_to_export
+
+	@staticmethod
+	def isExported(target_class):
+		return Utils._exported_attribute in target_class.__dict__ and target_class.__dict__[Utils._exported_attribute] is True
 
 # =======================================
 
@@ -196,7 +202,7 @@ class Kiwi:
 	class _Config:
 		_home_dir = home_dir
 
-		@exported
+		@Utils.exported
 		class remote:
 			api = "http://remote.imkiwi.me:8080/api/"
 			raw = "http://remote.imkiwi.me:8080/assets/"
@@ -205,17 +211,17 @@ class Kiwi:
 			serverside_endpoint = "http://remote.imkiwi.me:8080"
 			requests_timeout_seconds = 10
 
-		@exported
+		@Utils.exported
 		class local:
 
-			@exported
+			@Utils.exported
 			class client:
 				modules_dir = join(home_dir, "modules")
 				runtime_dir = join(home_dir, "runtime")
 				modules_home_dir = join(home_dir, "modules_home")
 				cache_dir = ""
 
-			@exported
+			@Utils.exported
 			class server:
 				port = 8080
 
@@ -241,7 +247,7 @@ class Kiwi:
 
 				# recursively parse exported subclass
 				if isclass(value):
-					if isExported(value):
+					if Utils.isExported(value):
 						exported_json[item] = Kiwi._Config._export(value)
 
 				# ensure attribute is none of the following
