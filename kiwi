@@ -176,7 +176,7 @@ class Kiwi:
 
 					# overwrite from remote
 					else:
-						Kiwi.Helper.overwrite(local, Kiwi.Helper.get(asset.remote, self.config.requests_timeout_seconds))
+						Kiwi.Helper.overwrite(local, Kiwi.Helper.get(asset.remote, self.config.remote.requests_timeout_seconds))
 
 			finally:
 
