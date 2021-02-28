@@ -87,4 +87,4 @@ def run(kiwi, args):
 		with open(args.dump_config, 'w') as config_file:
 			config_file.write(kiwi.Config.dump())
 
-		kiwi.say("dumped current configuration to {}".format(args.dump_config))
+		kiwi.say("dumped current configuration to '{}'".format(args.dump_config))

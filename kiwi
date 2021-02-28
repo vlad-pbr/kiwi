@@ -17,6 +17,7 @@ from shutil import rmtree
 from datetime import datetime
 from tempfile import mkdtemp
 from io import StringIO
+from inspect import isclass
 
 # package resolution method =============
 def resolve(package):
@@ -33,6 +34,15 @@ for dep in ['requests', 'jsonpickle']:
 # import resolved packages
 import requests
 import jsonpickle
+
+# exported configuration related ========
+
+def exported(class_to_export):
+	setattr(class_to_export, "__exported__", True)
+	return class_to_export
+
+def isExported(target_class):
+	return "__exported__" in target_class.__dict__ and target_class.__dict__["__exported__"] is True
 
 # =======================================
 
@@ -107,34 +117,34 @@ class Kiwi:
 
 		def module(self, name):
 			return self._with_cache(argparse.Namespace(
-				remote = join(self.config.remote_raw, self.config.remote_modules_dir, name, self.config.kiwi_side.value),
-				local = join(self.config.local_modules_dir, name, self.config.kiwi_side.value)
+				remote = join(self.config.remote.raw, self.config.remote.modules_dir, name, self.config.kiwi_side.value),
+				local = join(self.config.local.client.modules_dir, name, self.config.kiwi_side.value)
 			))
 
 		def meta(self, name):
 			return self._with_cache(argparse.Namespace(
-				remote = join(self.config.remote_raw, self.config.remote_modules_dir, name, "meta.txt"),
-				local = join(self.config.local_modules_dir, name, "meta.txt")
+				remote = join(self.config.remote.raw, self.config.remote.modules_dir, name, "meta.txt"),
+				local = join(self.config.local.client.modules_dir, name, "meta.txt")
 			))
 
 		def runtime(self, module):
 			return self._with_cache(argparse.Namespace(
-				remote = join(self.config.remote_raw, self.config.remote_runtime_dir, module.value),
-				local = join(self.config.local_runtime_dir, module.value)
+				remote = join(self.config.remote.raw, self.config.remote.runtime_dir, module.value),
+				local = join(self.config.local.client.runtime_dir, module.value)
 			))
 
 		def kiwi(self):
 			return self._with_cache(argparse.Namespace(
-				remote = join(self.config.remote_raw, "kiwi"),
-				local = join(self.config.local_runtime_dir, os.path.abspath(__file__).split('/')[-1])
+				remote = join(self.config.remote.raw, "kiwi"),
+				local = join(self.config.local.client.runtime_dir, os.path.abspath(__file__).split('/')[-1])
 			))
 
 		def _with_cache(self, asset):
-			asset.cache = join(self.config.local_cache_dir, asset.local.replace("/", "_"))
+			asset.cache = join(self.config.local.client.cache_dir, asset.local.replace("/", "_"))
 			return asset
 
 		def up_to_date(self, asset):
-			remote_data = Kiwi.Helper.get(asset.remote, self.config.requests_timeout_seconds)
+			remote_data = Kiwi.Helper.get(asset.remote, self.config.remote.requests_timeout_seconds)
 
 			# cache remote file
 			with open(asset.cache, 'w') as cache:
@@ -186,36 +196,108 @@ class Kiwi:
 	class _Config:
 		_home_dir = home_dir
 
-		remote_endpoint = "http://remote.imkiwi.me:8080"
+		@exported
+		class remote:
+			api = "http://remote.imkiwi.me:8080/api/"
+			raw = "http://remote.imkiwi.me:8080/assets/"
+			modules_dir = "modules/"
+			runtime_dir = "runtime/"
+			serverside_endpoint = "http://remote.imkiwi.me:8080"
+			requests_timeout_seconds = 10
 
-		remote_modules_dir = "modules/"
-		remote_runtime_dir = "runtime/"
-		remote_api = "http://remote.imkiwi.me:8080/api/"
-		remote_raw = "http://remote.imkiwi.me:8080/assets/"
+		@exported
+		class local:
 
-		requests_timeout_seconds = 10
+			@exported
+			class client:
+				modules_dir = join(home_dir, "modules")
+				runtime_dir = join(home_dir, "runtime")
+				modules_home_dir = join(home_dir, "modules_home")
+				cache_dir = ""
 
-		local_modules_dir = join(_home_dir, "modules")
-		local_runtime_dir = join(_home_dir, "runtime")
-		local_modules_home_dir = join(_home_dir, "modules_home")
-		local_cache_dir = None
+			@exported
+			class server:
+				port = 8080
 
-		server_port = 8080
+		@staticmethod
+		def _import(c, json):
+			
+			for item, value in json.items():
+
+				# recursively set attributes to underlying class
+				if isinstance(value, dict):
+					Kiwi._Config._import(c.__getattribute__(c, item), value)
+
+				# set attribute
+				else:
+					setattr(c, item, value)
+
+		@staticmethod
+		def _export(c):
+
+			exported_json = {}
+
+			for item, value in c.__dict__.items():
+
+				# recursively parse exported subclass
+				if isclass(value):
+					if isExported(value):
+						exported_json[item] = Kiwi._Config._export(value)
+
+				# ensure attribute is none of the following
+				else:
+					if True not in [ 
+						item.startswith("_"), 			# is not exported
+						callable(value), 				# is a classmethod
+						hasattr(value, "__func__") ]:	# is a staticmethod
+
+						exported_json[item] = value
+
+			return exported_json
 
 		def dump(self):
-			return dumps({ item:getattr(self, item) for item in self.__items__ }, indent=4) + "\n"
+			return dumps(Kiwi._Config._export(self.__class__), indent=4) + "\n"
 
 		def __init__(self, config_path=None):
-			self.__items__ = [item for item in self.__class__.__dict__ if not item.startswith("_") and not callable(self.__getattribute__(item))]
 
 			if config_path:
 
+				def merge(dest, src):
+
+					for key, value in src.items():
+
+						# make sure key is present in destination
+						if key not in dest.keys():
+							raise AttributeError("key '{}' is not configurable".format(key))
+
+						# assert value type
+						elif type(value) != type(dest[key]):
+							raise AttributeError("key '{}' is not of type '{}'".format(key, type(dest[key]).__name__))
+
+						# key passed validation
+						else:
+
+							# recursively merge inner fields
+							if isinstance(value, dict):
+								merge(dest[key], src[key])
+
+							# set current key
+							else:
+								dest[key] = value
+
 				with open(config_path, 'r') as config_file:
-					config_dict = loads(config_file.read())
-					
-					for item in self.__items__:
-						if item in config_dict:
-							setattr(self, item, config_dict[item])
+
+					# get current and custom configs and json
+					self_dict = self._export(self.__class__)
+
+					# merge by current keys
+					try:
+						merge(self_dict, loads(config_file.read()))
+					except AttributeError as e:
+						Kiwi.Helper.report(e, "found an error while loading custom config at '{}'".format(config_path), True)
+
+					# import new configuration
+					self._import(self.__class__, self_dict)
 
 	def __init__(self, config_path=None, server=False):
 
@@ -245,44 +327,44 @@ class Kiwi:
 		self.Config.kiwi_side = self.Side.Server if server else self.Side.Client
 
 		# init cache directory if needed
-		if self.Config.local_cache_dir is None:
-			self.Config.local_cache_dir = mkdtemp()
+		if self.Config.local.client.cache_dir == "":
+			self.Config.local.client.cache_dir = mkdtemp()
 		else:
-			self.Helper.ensure_directory(self.Config.local_cache_dir)
+			self.Helper.ensure_directory(self.Config.local.client.cache_dir)
 
 		# init runtime
 		self.runtime = self._Runtime(self._Assets(self.Config))
 
 		# init directories
 		for directory in [
-			self.Config.local_modules_dir,
-			self.Config.local_runtime_dir
+			self.Config.local.client.modules_dir,
+			self.Config.local.client.runtime_dir
 		]:
 			self.Helper.ensure_directory(directory)
 
 		# write kiwi symlink to runtime dir
 		kiwi_origin_path = os.path.abspath(__file__)
-		kiwi_symlink_path = join(self.Config.local_runtime_dir, kiwi_origin_path.split('/')[-1])
+		kiwi_symlink_path = join(self.Config.local.client.runtime_dir, kiwi_origin_path.split('/')[-1])
 
 		if not isfile(kiwi_symlink_path):
 			os.symlink(kiwi_origin_path, kiwi_symlink_path)
 
 	def __del__(self):
 		try:
-			rmtree(self.Config.local_cache_dir)
+			rmtree(self.Config.local.client.cache_dir)
 		except:
 			pass
 
 	def get_installed_module_list(self):
-		return [module for module in os.listdir(self.Config.local_modules_dir) if isfile(self.runtime.assets.module(module).local)]
+		return [module for module in os.listdir(self.Config.local.client.modules_dir) if isfile(self.runtime.assets.module(module).local)]
 
 	def get_remote_module_list(self):
-		modules_dir = loads(self.Helper.get(join(self.Config.remote_api, self.Config.remote_modules_dir), self.Config.requests_timeout_seconds))
+		modules_dir = loads(self.Helper.get(join(self.Config.remote.api, self.Config.remote.modules_dir), self.Config.remote.requests_timeout_seconds))
 		remote = []
 
 		# get list of module directories
 		for module in modules_dir:
-			module_dir = loads(self.Helper.get(join(self.Config.remote_api, self.Config.remote_modules_dir, module['name']), self.Config.requests_timeout_seconds))
+			module_dir = loads(self.Helper.get(join(self.Config.remote.api, self.Config.remote.modules_dir, module['name']), self.Config.remote.requests_timeout_seconds))
 
 			# find matching module file
 			for _file in module_dir:
@@ -414,9 +496,9 @@ class Kiwi:
 
 		def __init__(self, name):
 			self.module_name = name
-			self.module_home = join(KIWI.Config.local_modules_home_dir, name)
+			self.module_home = join(KIWI.Config.local.client.modules_home_dir, name)
 			self.module_desc = KIWI.get_module_description(name)
-			self.module_remote = join(KIWI.Config.remote_endpoint, 'module', name)
+			self.module_remote = join(KIWI.Config.remote.serverside_endpoint, 'module', name)
 
 			self.ensure_directory(self.module_home)
 
@@ -544,6 +626,7 @@ def main():
 
 		# kiwi server/client side boolean
 		parser.add_argument('-s', '--server', action='store_true')
+		parser.add_argument('-c', '--config', type=str)
 
 		# mutually exclusive args
 		group = parser.add_mutually_exclusive_group()
@@ -552,7 +635,6 @@ def main():
 		group.add_argument('-u', '--update-modules', nargs='*')
 		group.add_argument('-U', '--self-update', action='store_true')
 		group.add_argument('-S', '--start-server', action='store_true')
-		group.add_argument('-c', '--config', type=str)
 		group.add_argument('-d', '--dump-config', type=str)
 
 		args = parser.parse_args()
