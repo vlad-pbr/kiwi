@@ -85,6 +85,6 @@ def run(kiwi, args):
 	# dump current configuration to file
 	elif args.dump_config:
 		with open(args.dump_config, 'w') as config_file:
-			config_file.write(kiwi.Config.dump())
+			config_file.write(kiwi.config.dump())
 
 		kiwi.say("dumped current configuration to '{}'".format(args.dump_config))

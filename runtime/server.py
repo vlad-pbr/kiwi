@@ -91,19 +91,19 @@ def module(module):
 		abort(500)
 
 def runtime_json(path):
-	return assets_json(kiwi.Config.local.client.runtime_dir, path)
+	return assets_json(kiwi.config.local.client.runtime_dir, path)
 
 def runtime_asset(path):
-	return send_from_directory(kiwi.Config.local.client.runtime_dir, path)
+	return send_from_directory(kiwi.config.local.client.runtime_dir, path)
 
 def modules_json(path):
-	return assets_json(kiwi.Config.local.client.modules_dir, path)
+	return assets_json(kiwi.config.local.client.modules_dir, path)
 
 def modules_asset(path):
-	return send_from_directory(kiwi.Config.local.client.modules_dir, path)
+	return send_from_directory(kiwi.config.local.client.modules_dir, path)
 
 def kiwi_asset():
-	return send_from_directory(kiwi.Config.local.client.runtime_dir, 'kiwi')
+	return send_from_directory(kiwi.config.local.client.runtime_dir, 'kiwi')
 
 def assets_json(source, path):
 	
@@ -148,12 +148,12 @@ def serve_kiwi():
 def start_server():
 	from gevent.pywsgi import WSGIServer
 
-	http_server = WSGIServer(('', int(kiwi.Config.local.server.port)), app)
+	http_server = WSGIServer(('', int(kiwi.config.local.server.port)), app)
 	http_server.serve_forever()
 
 def run(_kiwi):
 
-	pid_file_path = _kiwi.Helper.join(_kiwi.Config._home_dir, 'PID')
+	pid_file_path = _kiwi.Helper.join(_kiwi.config._home_dir, 'PID')
 
 	# open PID file
 	if isfile(pid_file_path):

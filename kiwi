@@ -198,7 +198,7 @@ class Kiwi:
 		Server = "server.py"
 
 	# configurable vars
-	class _Config:
+	class Config:
 		_home_dir = home_dir
 
 		@staticmethod
@@ -208,7 +208,7 @@ class Kiwi:
 
 				# recursively set attributes to underlying object
 				if isinstance(value, dict):
-					Kiwi._Config._import(c.__getattribute__(item), value)
+					Kiwi.Config._import(c.__getattribute__(item), value)
 
 				# set attribute
 				else:
@@ -224,7 +224,7 @@ class Kiwi:
 				# recursively parse object attributes if its class is exported
 				if hasattr(value, '__dict__'):
 					if Utils.isExported(value.__class__):
-						exported_json[item] = Kiwi._Config._export(value)
+						exported_json[item] = Kiwi.Config._export(value)
 
 				# ensure attribute is none of the following
 				else:
@@ -238,7 +238,7 @@ class Kiwi:
 			return exported_json
 
 		def dump(self):
-			return dumps(Kiwi._Config._export(self), indent=4) + "\n"
+			return dumps(Kiwi.Config._export(self), indent=4) + "\n"
 
 		def __init__(self, config_path=None):
 
@@ -330,64 +330,64 @@ class Kiwi:
 				sys.exit(1)
 
 			else:
-				self.Config = Kiwi._Config(config_path)
+				self.config = Kiwi.Config(config_path)
 
 		else:
 
 			# if default config does not exist - load from default
 			if not isfile(default_config_path):
-				self.Config = Kiwi._Config()
+				self.config = Kiwi.Config()
 
 			# use config in default location
 			else:
-				self.Config = Kiwi._Config(default_config_path)
+				self.config = Kiwi.Config(default_config_path)
 
 		# set server bool
-		self.Config.kiwi_side = self.Side.Server if server else self.Side.Client
+		self.config.kiwi_side = self.Side.Server if server else self.Side.Client
 
 		# init cache directory if needed
-		if self.Config.local.client.cache_dir == "":
-			self.Config.local.client.cache_dir = mkdtemp()
+		if self.config.local.client.cache_dir == "":
+			self.config.local.client.cache_dir = mkdtemp()
 		else:
-			self.Helper.ensure_directory(self.Config.local.client.cache_dir)
+			self.Helper.ensure_directory(self.config.local.client.cache_dir)
 
 		# init runtime
-		self.runtime = self._Runtime(self._Assets(self.Config))
+		self.runtime = self._Runtime(self._Assets(self.config))
 
 		# init directories
 		for directory in [
-			self.Config.local.client.modules_dir,
-			self.Config.local.client.runtime_dir
+			self.config.local.client.modules_dir,
+			self.config.local.client.runtime_dir
 		]:
 			self.Helper.ensure_directory(directory)
 
 		# write kiwi symlink to runtime dir
 		kiwi_origin_path = os.path.abspath(__file__)
-		kiwi_symlink_path = Kiwi.Helper.join(self.Config.local.client.runtime_dir, kiwi_origin_path.split('/')[-1])
+		kiwi_symlink_path = Kiwi.Helper.join(self.config.local.client.runtime_dir, kiwi_origin_path.split('/')[-1])
 
 		if not isfile(kiwi_symlink_path):
 			os.symlink(kiwi_origin_path, kiwi_symlink_path)
 
 	def __del__(self):
 		try:
-			rmtree(self.Config.local.client.cache_dir)
+			rmtree(self.config.local.client.cache_dir)
 		except:
 			pass
 
 	def get_installed_module_list(self):
-		return [module for module in os.listdir(self.Config.local.client.modules_dir) if isfile(self.runtime.assets.module(module).local)]
+		return [module for module in os.listdir(self.config.local.client.modules_dir) if isfile(self.runtime.assets.module(module).local)]
 
 	def get_remote_module_list(self):
-		modules_dir = loads(self.Helper.get(Kiwi.Helper.join(self.Config.remote.api, self.Config.remote.modules_dir), self.Config.remote.requests_timeout_seconds))
+		modules_dir = loads(self.Helper.get(Kiwi.Helper.join(self.config.remote.api, self.config.remote.modules_dir), self.config.remote.requests_timeout_seconds))
 		remote = []
 
 		# get list of module directories
 		for module in modules_dir:
-			module_dir = loads(self.Helper.get(Kiwi.Helper.join(self.Config.remote.api, self.Config.remote.modules_dir, module['name']), self.Config.remote.requests_timeout_seconds))
+			module_dir = loads(self.Helper.get(Kiwi.Helper.join(self.config.remote.api, self.config.remote.modules_dir, module['name']), self.config.remote.requests_timeout_seconds))
 
 			# find matching module file
 			for _file in module_dir:
-				if _file['name'] == self.Config.kiwi_side.value:
+				if _file['name'] == self.config.kiwi_side.value:
 					remote.append(module['name'])
 					break
 
@@ -515,9 +515,9 @@ class Kiwi:
 
 		def __init__(self, name):
 			self.module_name = name
-			self.module_home = Kiwi.Helper.join(KIWI.Config.local.client.modules_home_dir, name)
+			self.module_home = Kiwi.Helper.join(KIWI.config.local.client.modules_home_dir, name)
 			self.module_desc = KIWI.get_module_description(name)
-			self.module_remote = Kiwi.Helper.join(KIWI.Config.remote.serverside_endpoint, 'module', name)
+			self.module_remote = Kiwi.Helper.join(KIWI.config.remote.serverside_endpoint, 'module', name)
 
 			self.ensure_directory(self.module_home)
 
