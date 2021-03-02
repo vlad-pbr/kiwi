@@ -2,7 +2,6 @@
 
 import sys
 from os import chdir
-from os.path import join
 
 def run(kiwi, argv, *ingress):
 
@@ -44,6 +43,6 @@ def run(kiwi, argv, *ingress):
 			ex_type, module_exception, module_traceback = sys.exc_info()
 			kiwi.say("module '{}' crashed with the following exception: {}".format(module_name, module_exception))
 			if helper.write_crashlog(ex_type, module_exception, module_traceback):
-				kiwi.say('detailed crash log can be found at {}'.format(join(helper.module_home, "crash.log")))
+				kiwi.say('detailed crash log can be found at {}'.format(kiwi.Helper.join(helper.module_home, "crash.log")))
 			
 			return None

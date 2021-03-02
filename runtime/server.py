@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from os import listdir, kill, remove, close
-from os.path import join, isdir, exists, isfile, realpath, dirname
+from os.path import isdir, exists, isfile, realpath, dirname
 from json import dumps
 from multiprocessing import Process
 from daemonize import Daemonize
@@ -114,7 +114,7 @@ def assets_json(source, path):
 			"type": "dir" if isdir(file_path) else "file",
 			}
 
-	abs_path = join(source, path)
+	abs_path = kiwi.Helper.join(source, path)
 
 	# 404 if file does not exist
 	if not exists(abs_path):
@@ -128,7 +128,7 @@ def assets_json(source, path):
 	else:
 		response = []
 		for filename in listdir(abs_path):
-			response.append(file_json(join(abs_path, filename)))
+			response.append(file_json(kiwi.Helper.join(abs_path, filename)))
 
 	return dumps(response, indent=4)
 
@@ -153,7 +153,7 @@ def start_server():
 
 def run(_kiwi):
 
-	pid_file_path = join(_kiwi.Config._home_dir, 'PID')
+	pid_file_path = _kiwi.Helper.join(_kiwi.Config._home_dir, 'PID')
 
 	# open PID file
 	if isfile(pid_file_path):

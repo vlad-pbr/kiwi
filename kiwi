@@ -11,7 +11,7 @@ import ast
 import shlex
 from enum import Enum
 from json import loads, dumps
-from os.path import isfile, join, expanduser, getsize
+from os.path import isfile, expanduser, getsize
 from hashlib import sha256
 from shutil import rmtree
 from datetime import datetime
@@ -53,7 +53,7 @@ import requests
 import jsonpickle
 
 # unconfigurable globals
-home_dir = join(expanduser("~"), '.kiwi')
+home_dir = expanduser("~/.kiwi")
 
 # global kiwi instance
 KIWI = None
@@ -123,30 +123,30 @@ class Kiwi:
 
 		def module(self, name):
 			return self._with_cache(argparse.Namespace(
-				remote = join(self.config.remote.raw, self.config.remote.modules_dir, name, self.config.kiwi_side.value),
-				local = join(self.config.local.client.modules_dir, name, self.config.kiwi_side.value)
+				remote = Kiwi.Helper.join(self.config.remote.raw, self.config.remote.modules_dir, name, self.config.kiwi_side.value),
+				local = Kiwi.Helper.join(self.config.local.client.modules_dir, name, self.config.kiwi_side.value)
 			))
 
 		def meta(self, name):
 			return self._with_cache(argparse.Namespace(
-				remote = join(self.config.remote.raw, self.config.remote.modules_dir, name, "meta.txt"),
-				local = join(self.config.local.client.modules_dir, name, "meta.txt")
+				remote = Kiwi.Helper.join(self.config.remote.raw, self.config.remote.modules_dir, name, "meta.txt"),
+				local = Kiwi.Helper.join(self.config.local.client.modules_dir, name, "meta.txt")
 			))
 
 		def runtime(self, module):
 			return self._with_cache(argparse.Namespace(
-				remote = join(self.config.remote.raw, self.config.remote.runtime_dir, module.value),
-				local = join(self.config.local.client.runtime_dir, module.value)
+				remote = Kiwi.Helper.join(self.config.remote.raw, self.config.remote.runtime_dir, module.value),
+				local = Kiwi.Helper.join(self.config.local.client.runtime_dir, module.value)
 			))
 
 		def kiwi(self):
 			return self._with_cache(argparse.Namespace(
-				remote = join(self.config.remote.raw, "kiwi"),
-				local = join(self.config.local.client.runtime_dir, os.path.abspath(__file__).split('/')[-1])
+				remote = Kiwi.Helper.join(self.config.remote.raw, "kiwi"),
+				local = Kiwi.Helper.join(self.config.local.client.runtime_dir, os.path.abspath(__file__).split('/')[-1])
 			))
 
 		def _with_cache(self, asset):
-			asset.cache = join(self.config.local.client.cache_dir, asset.local.replace("/", "_"))
+			asset.cache = Kiwi.Helper.join(self.config.local.client.cache_dir, asset.local.replace("/", "_"))
 			return asset
 
 		def up_to_date(self, asset):
@@ -216,9 +216,9 @@ class Kiwi:
 
 			@Utils.exported
 			class client:
-				modules_dir = join(home_dir, "modules")
-				runtime_dir = join(home_dir, "runtime")
-				modules_home_dir = join(home_dir, "modules_home")
+				modules_dir = home_dir + "/modules"
+				runtime_dir = home_dir + "/runtime"
+				modules_home_dir = home_dir + "/modules_home"
 				cache_dir = ""
 
 			@Utils.exported
@@ -307,7 +307,7 @@ class Kiwi:
 
 	def __init__(self, config_path=None, server=False):
 
-		default_config_path = join(home_dir, "kiwi.json")
+		default_config_path = Kiwi.Helper.join(home_dir, "kiwi.json")
 
 		# if custom config file is specified - try using it
 		if config_path:
@@ -350,7 +350,7 @@ class Kiwi:
 
 		# write kiwi symlink to runtime dir
 		kiwi_origin_path = os.path.abspath(__file__)
-		kiwi_symlink_path = join(self.Config.local.client.runtime_dir, kiwi_origin_path.split('/')[-1])
+		kiwi_symlink_path = Kiwi.Helper.join(self.Config.local.client.runtime_dir, kiwi_origin_path.split('/')[-1])
 
 		if not isfile(kiwi_symlink_path):
 			os.symlink(kiwi_origin_path, kiwi_symlink_path)
@@ -365,12 +365,12 @@ class Kiwi:
 		return [module for module in os.listdir(self.Config.local.client.modules_dir) if isfile(self.runtime.assets.module(module).local)]
 
 	def get_remote_module_list(self):
-		modules_dir = loads(self.Helper.get(join(self.Config.remote.api, self.Config.remote.modules_dir), self.Config.remote.requests_timeout_seconds))
+		modules_dir = loads(self.Helper.get(Kiwi.Helper.join(self.Config.remote.api, self.Config.remote.modules_dir), self.Config.remote.requests_timeout_seconds))
 		remote = []
 
 		# get list of module directories
 		for module in modules_dir:
-			module_dir = loads(self.Helper.get(join(self.Config.remote.api, self.Config.remote.modules_dir, module['name']), self.Config.remote.requests_timeout_seconds))
+			module_dir = loads(self.Helper.get(Kiwi.Helper.join(self.Config.remote.api, self.Config.remote.modules_dir, module['name']), self.Config.remote.requests_timeout_seconds))
 
 			# find matching module file
 			for _file in module_dir:
@@ -478,7 +478,7 @@ class Kiwi:
 					for name in body_object.names:
 						Utils.resolve(name.name)
 				elif isinstance(body_object, ast.ImportFrom):
-					Utisl.resolve(body_object.module.split('.')[0])
+					Utils.resolve(body_object.module.split('.')[0])
 				elif hasattr(body_object, 'body'):
 					_resolve_body(body_object.body)
 
@@ -502,15 +502,15 @@ class Kiwi:
 
 		def __init__(self, name):
 			self.module_name = name
-			self.module_home = join(KIWI.Config.local.client.modules_home_dir, name)
+			self.module_home = Kiwi.Helper.join(KIWI.Config.local.client.modules_home_dir, name)
 			self.module_desc = KIWI.get_module_description(name)
-			self.module_remote = join(KIWI.Config.remote.serverside_endpoint, 'module', name)
+			self.module_remote = Kiwi.Helper.join(KIWI.Config.remote.serverside_endpoint, 'module', name)
 
 			self.ensure_directory(self.module_home)
 
 		def write_crashlog(self, exception_type, exception, exception_traceback):
 
-			dest = join(self.module_home, "crash.log")
+			dest = Kiwi.Helper.join(self.module_home, "crash.log")
 
 			# append to file if it already exists
 			open_mode = 'a' if isfile(dest) else 'w'
@@ -568,8 +568,8 @@ class Kiwi:
 				sys.exit(1)
 
 		@staticmethod
-		def sha(data):
-			return sha256(data.encode('utf-8')).hexdigest()
+		def sha(data, encoding='utf-8'):
+			return sha256(data.encode(encoding)).hexdigest()
 
 		@staticmethod
 		def ask(query, options):
@@ -599,6 +599,10 @@ class Kiwi:
 			except OSError as e:
 				if e.errno is not errno.EEXIST:
 					Kiwi.Helper.report(e, 'could not create directory {}'.format(directory), True)
+
+		@staticmethod
+		def join(root_dir, *args, delimiter='/'):
+			return (root_dir if root_dir[-1] == delimiter else (root_dir + delimiter)) + delimiter.join([string.strip(delimiter) for string in args])
 
 def main():
 
