@@ -17,7 +17,6 @@ from shutil import rmtree
 from datetime import datetime
 from tempfile import mkdtemp
 from io import StringIO
-from inspect import isclass
 
 # various global utilities ==============
 
@@ -202,37 +201,14 @@ class Kiwi:
 	class _Config:
 		_home_dir = home_dir
 
-		@Utils.exported
-		class remote:
-			api = "http://remote.imkiwi.me:8080/api/"
-			raw = "http://remote.imkiwi.me:8080/assets/"
-			modules_dir = "modules/"
-			runtime_dir = "runtime/"
-			serverside_endpoint = "http://remote.imkiwi.me:8080"
-			requests_timeout_seconds = 10
-
-		@Utils.exported
-		class local:
-
-			@Utils.exported
-			class client:
-				modules_dir = home_dir + "/modules"
-				runtime_dir = home_dir + "/runtime"
-				modules_home_dir = home_dir + "/modules_home"
-				cache_dir = ""
-
-			@Utils.exported
-			class server:
-				port = 8080
-
 		@staticmethod
 		def _import(c, json):
 			
 			for item, value in json.items():
 
-				# recursively set attributes to underlying class
+				# recursively set attributes to underlying object
 				if isinstance(value, dict):
-					Kiwi._Config._import(c.__getattribute__(c, item), value)
+					Kiwi._Config._import(c.__getattribute__(item), value)
 
 				# set attribute
 				else:
@@ -245,9 +221,9 @@ class Kiwi:
 
 			for item, value in c.__dict__.items():
 
-				# recursively parse exported subclass
-				if isclass(value):
-					if Utils.isExported(value):
+				# recursively parse object attributes if its class is exported
+				if hasattr(value, '__dict__'):
+					if Utils.isExported(value.__class__):
 						exported_json[item] = Kiwi._Config._export(value)
 
 				# ensure attribute is none of the following
@@ -262,9 +238,46 @@ class Kiwi:
 			return exported_json
 
 		def dump(self):
-			return dumps(Kiwi._Config._export(self.__class__), indent=4) + "\n"
+			return dumps(Kiwi._Config._export(self), indent=4) + "\n"
 
 		def __init__(self, config_path=None):
+
+			@Utils.exported
+			class remote:
+
+				def __init__(self):
+					self.api = "http://remote.imkiwi.me:8080/api/"
+					self.raw = "http://remote.imkiwi.me:8080/assets/"
+					self.modules_dir = "modules/"
+					self.runtime_dir = "runtime/"
+					self.serverside_endpoint = "http://remote.imkiwi.me:8080"
+					self.requests_timeout_seconds = 10
+
+			@Utils.exported
+			class local:
+
+				def __init__(self):
+
+					@Utils.exported
+					class client:
+
+						def __init__(self):
+							self.modules_dir = home_dir + "/modules"
+							self.runtime_dir = home_dir + "/runtime"
+							self.modules_home_dir = home_dir + "/modules_home"
+							self.cache_dir = ""
+
+					@Utils.exported
+					class server:
+
+						def __init__(self):
+							self.port = 8080
+
+					self.client = client()
+					self.server = server()
+
+			self.remote = remote()
+			self.local = local()
 
 			if config_path:
 
@@ -294,7 +307,7 @@ class Kiwi:
 				with open(config_path, 'r') as config_file:
 
 					# get current and custom configs and json
-					self_dict = self._export(self.__class__)
+					self_dict = self._export(self)
 
 					# merge by current keys
 					try:
@@ -303,7 +316,7 @@ class Kiwi:
 						Kiwi.Helper.report(e, "found an error while loading custom config at '{}'".format(config_path), True)
 
 					# import new configuration
-					self._import(self.__class__, self_dict)
+					self._import(self, self_dict)
 
 	def __init__(self, config_path=None, server=False):
 
