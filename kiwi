@@ -22,16 +22,54 @@ from io import StringIO
 
 class Utils:
 
-	_exported_attribute = "__exported__"
+	class Configurator:
 
-	@staticmethod
-	def exported(class_to_export):
-		setattr(class_to_export, Utils._exported_attribute, True)
-		return class_to_export
+		exported_attribute_name = "__exported__"
 
-	@staticmethod
-	def isExported(target_class):
-		return Utils._exported_attribute in target_class.__dict__ and target_class.__dict__[Utils._exported_attribute] is True
+		@staticmethod
+		def exported(class_to_export):
+			setattr(class_to_export, Utils.Configurator.exported_attribute_name, True)
+			return class_to_export
+
+		@staticmethod
+		def isExported(target_class):
+			return Utils.Configurator.exported_attribute_name in target_class.__dict__ and target_class.__dict__[Utils.Configurator.exported_attribute_name] is True
+
+		@staticmethod
+		def import_(object_, json):
+			
+			for item, value in json.items():
+
+				# recursively set attributes to underlying object
+				if isinstance(value, dict):
+					Utils.Configurator.import_(object_.__getattribute__(item), value)
+
+				# set attribute
+				else:
+					setattr(object_, item, value)
+
+		@staticmethod
+		def export(object_):
+
+			exported_json = {}
+
+			for item, value in object_.__dict__.items():
+
+				# recursively parse object attributes if its class is exported
+				if hasattr(value, '__dict__'):
+					if Utils.Configurator.isExported(value.__class__):
+						exported_json[item] = Utils.Configurator.export(value)
+
+				# ensure attribute is none of the following
+				else:
+					if True not in [ 
+						item.startswith("_"), 			# is not exported
+						callable(value), 				# is a classmethod
+						hasattr(value, "__func__") ]:	# is a staticmethod
+
+						exported_json[item] = value
+
+			return exported_json
 
 	@staticmethod
 	def resolve(package):
@@ -201,48 +239,12 @@ class Kiwi:
 	class Config:
 		_home_dir = home_dir
 
-		@staticmethod
-		def _import(c, json):
-			
-			for item, value in json.items():
-
-				# recursively set attributes to underlying object
-				if isinstance(value, dict):
-					Kiwi.Config._import(c.__getattribute__(item), value)
-
-				# set attribute
-				else:
-					setattr(c, item, value)
-
-		@staticmethod
-		def _export(c):
-
-			exported_json = {}
-
-			for item, value in c.__dict__.items():
-
-				# recursively parse object attributes if its class is exported
-				if hasattr(value, '__dict__'):
-					if Utils.isExported(value.__class__):
-						exported_json[item] = Kiwi.Config._export(value)
-
-				# ensure attribute is none of the following
-				else:
-					if True not in [ 
-						item.startswith("_"), 			# is not exported
-						callable(value), 				# is a classmethod
-						hasattr(value, "__func__") ]:	# is a staticmethod
-
-						exported_json[item] = value
-
-			return exported_json
-
 		def dump(self):
-			return dumps(Kiwi.Config._export(self), indent=4) + "\n"
+			return dumps(Utils.Configurator.export(self), indent=4) + "\n"
 
 		def __init__(self, config_path=None):
 
-			@Utils.exported
+			@Utils.Configurator.exported
 			class remote:
 
 				def __init__(self):
@@ -253,12 +255,12 @@ class Kiwi:
 					self.serverside_endpoint = "http://remote.imkiwi.me:8080"
 					self.requests_timeout_seconds = 10
 
-			@Utils.exported
+			@Utils.Configurator.exported
 			class local:
 
 				def __init__(self):
 
-					@Utils.exported
+					@Utils.Configurator.exported
 					class client:
 
 						def __init__(self):
@@ -267,7 +269,7 @@ class Kiwi:
 							self.modules_home_dir = home_dir + "/modules_home"
 							self.cache_dir = ""
 
-					@Utils.exported
+					@Utils.Configurator.exported
 					class server:
 
 						def __init__(self):
@@ -307,7 +309,7 @@ class Kiwi:
 				with open(config_path, 'r') as config_file:
 
 					# get current and custom configs and json
-					self_dict = self._export(self)
+					self_dict = Utils.Configurator.export(self)
 
 					# merge by current keys
 					try:
@@ -316,7 +318,7 @@ class Kiwi:
 						Kiwi.Helper.report(e, "found an error while loading custom config at '{}'".format(config_path), True)
 
 					# import new configuration
-					self._import(self, self_dict)
+					Utils.Configurator.import_(self, self_dict)
 
 	def __init__(self, config_path=None, server=False):
 
