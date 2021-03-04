@@ -160,8 +160,8 @@ class Kiwi:
 
 		def module(self, name):
 			return self._with_cache(argparse.Namespace(
-				remote = Kiwi.Helper.join(self.config.remote.raw, self.config.remote.modules_dir, name, self.config.kiwi_side.value),
-				local = Kiwi.Helper.join(self.config.local.client.modules_dir, name, self.config.kiwi_side.value)
+				remote = Kiwi.Helper.join(self.config.remote.raw, self.config.remote.modules_dir, name, self.config.kside.value),
+				local = Kiwi.Helper.join(self.config.local.client.modules_dir, name, self.config.side.value)
 			))
 
 		def meta(self, name):
@@ -345,7 +345,7 @@ class Kiwi:
 				self.config = Kiwi.Config(default_config_path)
 
 		# set server bool
-		self.config.kiwi_side = self.Side.Server if server else self.Side.Client
+		self.config.side = self.Side.Server if server else self.Side.Client
 
 		# init cache directory if needed
 		if self.config.local.client.cache_dir == "":
@@ -389,7 +389,7 @@ class Kiwi:
 
 			# find matching module file
 			for _file in module_dir:
-				if _file['name'] == self.config.kiwi_side.value:
+				if _file['name'] == self.config.side.value:
 					remote.append(module['name'])
 					break
 
@@ -566,13 +566,17 @@ class Kiwi:
 			stdout = StringIO()
 			sys.stdout = stdout
 
+			# backup kiwi side value
+			side_backup = KIWI.config.side
+			KIWI.config.side = Kiwi.Side.Client
+
 			# run module with arguments
 			try:
-				ret = KIWI.runtime.run(KIWI.runtime.Modules.Module, KIWI, sys.argv)
-				return ret, stdout.getvalue()
+				return KIWI.runtime.run(KIWI.runtime.Modules.Module, KIWI, sys.argv), stdout.getvalue()
 			finally:
 				sys.argv = argv_backup
 				sys.stdout = stdout_backup
+				KIWI.config.side = side_backup
 
 		@staticmethod
 		def report(e, description=None, fatal=False):
