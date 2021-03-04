@@ -227,7 +227,7 @@ def run(kiwi):
 		for log_file in [
 			KIWI.config.local.server.log.api.path
 		]:
-			Kiwi.Helper.ensure_directory(dirname(log_file))
+			KIWI.Helper.ensure_directory(dirname(log_file))
 
 		# api log handler
 		api_log_handler = logging.handlers.RotatingFileHandler(filename=KIWI.config.local.server.log.api.path,
