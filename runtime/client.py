@@ -4,6 +4,16 @@ import os
 import sys
 import requests
 
+def bulleted_list(preface, items):
+	
+	list_ = preface
+
+	# format each item in bullet form
+	for item in items:
+		list_ += "\n\t* {}".format(item)
+
+	return list_
+
 def run(kiwi, args):
 
 	# list modules
@@ -34,10 +44,10 @@ def run(kiwi, args):
 		# fetching / updating all modules
 		if 'all' in modules:
 			if len(modules) > 1:
-				kiwi.say("can't have 'all' argument with other modules listed")
-				print("Possible solutions:")
-				print("\t* {} {} all".format(kiwi.Config.kiwi_name, sys.argv[1]))
-				print("\t* " + kiwi.Config.kiwi_name + " " + sys.argv[1] + ' ' + ' '.join([module for module in modules if module != 'all']))
+				kiwi.say(bulleted_list("can't have 'all' argument with other modules listed\nSolutions:", [
+					"{} {} all".format(kiwi.Config.kiwi_name, sys.argv[1]),
+					kiwi.Config.kiwi_name + " " + sys.argv[1] + ' ' + ' '.join([module for module in modules if module != 'all'])
+				]))
 				sys.exit(1)
 				
 			# collect remote module list if fetching, local list if updating
@@ -56,12 +66,12 @@ def run(kiwi, args):
 
 		# fetch results
 		if args.get_modules:
-			kiwi.say('fetch results')
-			print('\t* {} new modules fetched'.format(len(modules_fetched)))
-			print('\t* {} modules could not be fetched'.format(len(modules_failed)))
-			print('\t* {} modules have an available update'.format(len(modules_update)))
-			if len(modules) != len(modules_fetched) + len(modules_update) + len(modules_failed):
-				print('\t* {} modules are present and up to date'.format(len(modules) - len(modules_fetched) - len(modules_update) - len(modules_failed)))
+			kiwi.say(bulleted_list('fetch results', [
+				'{} new modules fetched'.format(len(modules_fetched)),
+				'{} modules could not be fetched'.format(len(modules_failed)),
+				'{} modules have an available update'.format(len(modules_update)),
+				'{} modules are present and up to date'.format(len(modules) - len(modules_fetched) - len(modules_update) - len(modules_failed))
+			]))
 	
 		# update outdated modules if need be
 		if len(modules_update) > 0:
@@ -72,9 +82,10 @@ def run(kiwi, args):
 
 		# update results
 		if args.update_modules or len(modules_update) > 0:
-			kiwi.say('update results')
-			print('\t* {} modules were updated'.format(len(modules_fetched)))
-			print('\t* {} modules could not be updated'.format(len(modules_failed)))
+			kiwi.say(bulleted_list('update results', [
+				'{} modules were updated'.format(len(modules_fetched)),
+				'{} modules could not be updated'.format(len(modules_failed))
+			]))
 	
 	# kiwi self update
 	elif args.self_update:
