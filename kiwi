@@ -273,7 +273,7 @@ class Kiwi:
 					class server:
 
 						def __init__(self):
-							self.host = ''
+							self.host = '0.0.0.0'
 							self.port = 8080
 							self.foreground = False
 
