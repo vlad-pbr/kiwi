@@ -157,7 +157,7 @@ class Kiwi:
 
 		def module(self, name):
 			return self._with_cache(argparse.Namespace(
-				remote = Kiwi.Helper.join(self.config.remote.raw, self.config.remote.modules_dir, name, self.config.kside.value),
+				remote = Kiwi.Helper.join(self.config.remote.raw, self.config.remote.modules_dir, name, self.config.side.value),
 				local = Kiwi.Helper.join(self.config.local.client.modules_dir, name, self.config.side.value)
 			))
 
