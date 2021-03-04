@@ -12,6 +12,9 @@ from urllib.parse import quote
 from threading import Thread
 from time import sleep
 
+import logging
+import sys
+
 from flask import Flask, request, abort, send_from_directory
 from werkzeug.exceptions import HTTPException
 from werkzeug.serving import run_simple
@@ -146,8 +149,32 @@ def serve_asset(asset, path):
 def serve_kiwi():
 	return kiwi_asset()
 
-def start_server():
-	WSGIServer((KIWI.config.local.server.host, KIWI.config.local.server.port), app).serve_forever()
+def start_server(logHandler=logging.StreamHandler(sys.stdout)):
+
+	# define logger
+	api_logger = logging.getLogger(KIWI.Config.kiwi_name)
+	api_logger.setLevel(logging.INFO)
+
+	# set up log handler
+	logHandler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+	api_logger.addHandler(logHandler)
+
+	# initialize wsgi server
+	listener = (KIWI.config.local.server.host, KIWI.config.local.server.port)
+	server = WSGIServer(listener, app, log=api_logger)
+
+	# return wrapped starter function
+	def _start_server():
+		api_logger.info('listening on {}:{}'.format(listener[0], listener[1]))
+
+		try:
+			server.serve_forever()
+		except KeyboardInterrupt:
+			api_logger.warn("received keyboard interrupt")
+		finally:
+			api_logger.info("stopping server...")
+
+	return _start_server
 
 def run(kiwi):
 
@@ -169,8 +196,7 @@ def run(kiwi):
 
 	# foreground
 	if KIWI.config.local.server.foreground:
-		KIWI.say('listening on {}:{}'.format(KIWI.config.local.server.host, KIWI.config.local.server.port))
-		start_server()
+		start_server()()
 
 	# background
 	else:
@@ -191,14 +217,25 @@ def run(kiwi):
 					else:
 						KIWI.say('stopping daemon...')
 
-						# kill daemon and remove PID file
-						kill(pid, 9)
+						# terminate daemon and remove PID file
+						kill(pid, 15)
 						remove(pid_file_path)
 
 						exit(0)
 
-		KIWI.say('starting daemon...')
+		# api log handler
+		api_log_handler = logging.handlers.RotatingFileHandler(filename=KIWI.config.local.server.log.api.path,
+															   maxBytes=KIWI.config.local.server.log.api.size,
+															   backupCount=KIWI.config.local.server.log.api.backups)
 
-		# start server process
-		server = Daemonize(app=__name__, pid=pid_file_path, action=start_server)
-		server.start()
+		# daemon logger setup
+		daemon_logger = logging.getLogger("daemon")
+		daemon_logger.setLevel(logging.INFO)
+		daemon_logger.addHandler(api_log_handler)
+
+		# start daemon
+		KIWI.say('starting daemon...')
+		Daemonize(app=__name__, pid=pid_file_path,
+								action=start_server(api_log_handler),
+								logger=daemon_logger,
+								keep_fds=[api_log_handler.stream.fileno()]).start()

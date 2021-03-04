@@ -272,13 +272,30 @@ class Kiwi:
 					@Utils.Configurator.exported
 					class server:
 
-						def __init__(self):
+						def __init__(self, home_dir):
+
+							@Utils.Configurator.exported
+							class log:
+
+								def __init__(self, home_dir):
+
+									@Utils.Configurator.exported
+									class logRotate:
+
+										def __init__(self, home_dir, component):
+											self.path = Kiwi.Helper.join(home_dir, "logs", component + ".log")
+											self.size = 26214400 # 25MB
+											self.backups = 3
+
+									self.api = logRotate(home_dir, "api")
+
 							self.host = '0.0.0.0'
 							self.port = 8080
 							self.foreground = False
+							self.log = log(home_dir)
 
 					self.client = client(self.home_dir)
-					self.server = server()
+					self.server = server(self.home_dir)
 
 			self.remote = remote()
 			self.local = local()
