@@ -283,7 +283,7 @@ class Kiwi:
 									class logRotate:
 
 										def __init__(self, home_dir, component):
-											self.path = Kiwi.Helper.join(home_dir, "logs", component + ".log")
+											self.path = Kiwi.Helper.join(home_dir, "log", component + ".log")
 											self.size = 26214400 # 25MB
 											self.backups = 3
 
