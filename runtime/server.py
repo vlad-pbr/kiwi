@@ -59,9 +59,9 @@ class Ingress:
 			finally:
 				socket_session.close()
 
-kiwi = None
-api = {}
-assets = {}
+KIWI = None
+API = {}
+ASSETS = {}
 
 app = Flask(__name__[:-3])
 
@@ -73,7 +73,7 @@ def module(module):
 		ingress = Ingress(jsonpickle.decode(request.get_json()))
 
 		# get response from serverside module
-		response = kiwi.runtime.run(kiwi.runtime.Modules.Module, kiwi, [ module ], ingress )
+		response = KIWI.runtime.run(KIWI.runtime.Modules.Module, KIWI, [ module ], ingress )
 
 		# finalize ingress object
 		ingress.__del__()
@@ -91,19 +91,19 @@ def module(module):
 		abort(500)
 
 def runtime_json(path):
-	return assets_json(kiwi.config.local.client.runtime_dir, path)
+	return assets_json(KIWI.config.local.client.runtime_dir, path)
 
 def runtime_asset(path):
-	return send_from_directory(kiwi.config.local.client.runtime_dir, path)
+	return send_from_directory(KIWI.config.local.client.runtime_dir, path)
 
 def modules_json(path):
-	return assets_json(kiwi.config.local.client.modules_dir, path)
+	return assets_json(KIWI.config.local.client.modules_dir, path)
 
 def modules_asset(path):
-	return send_from_directory(kiwi.config.local.client.modules_dir, path)
+	return send_from_directory(KIWI.config.local.client.modules_dir, path)
 
 def kiwi_asset():
-	return send_from_directory(kiwi.config.local.client.runtime_dir, 'kiwi')
+	return send_from_directory(KIWI.config.local.client.runtime_dir, 'kiwi')
 
 def assets_json(source, path):
 	
@@ -114,7 +114,7 @@ def assets_json(source, path):
 			"type": "dir" if isdir(file_path) else "file",
 			}
 
-	abs_path = kiwi.Helper.join(source, path)
+	abs_path = KIWI.Helper.join(source, path)
 
 	# 404 if file does not exist
 	if not exists(abs_path):
@@ -128,18 +128,18 @@ def assets_json(source, path):
 	else:
 		response = []
 		for filename in listdir(abs_path):
-			response.append(file_json(kiwi.Helper.join(abs_path, filename)))
+			response.append(file_json(KIWI.Helper.join(abs_path, filename)))
 
 	return dumps(response, indent=4)
 
 @app.route('/api/<asset>/')
 @app.route('/api/<asset>/<path:path>')
 def serve_api(asset, path=''):
-	return api[asset](path) if asset in api else abort(404)
+	return API[asset](path) if asset in API else abort(404)
 
 @app.route('/assets/<asset>/<path:path>')
 def serve_asset(asset, path):
-	return assets[asset](path) if asset in assets else abort(404)
+	return ASSETS[asset](path) if asset in ASSETS else abort(404)
 
 @app.route('/assets/kiwi/')
 def serve_kiwi():
@@ -148,12 +148,12 @@ def serve_kiwi():
 def start_server():
 	from gevent.pywsgi import WSGIServer
 
-	http_server = WSGIServer(('', int(kiwi.config.local.server.port)), app)
+	http_server = WSGIServer(('', int(KIWI.config.local.server.port)), app)
 	http_server.serve_forever()
 
-def run(_kiwi):
+def run(kiwi):
 
-	pid_file_path = _kiwi.Helper.join(_kiwi.Config.home_dir, 'PID')
+	pid_file_path = kiwi.Helper.join(kiwi.Config.home_dir, 'PID')
 
 	# open PID file
 	if isfile(pid_file_path):
@@ -167,7 +167,7 @@ def run(_kiwi):
 				except OSError:
 					pass
 				else:
-					_kiwi.say('stopping server...')
+					kiwi.say('stopping server...')
 
 					# kill daemon and remove PID file
 					kill(pid, 9)
@@ -175,25 +175,25 @@ def run(_kiwi):
 
 					exit(0)
 
-	global kiwi
-	global api
-	global assets
+	global KIWI
+	global API
+	global ASSETS
 
-	kiwi = _kiwi
+	KIWI = kiwi
 
 	# api endpoints
-	api = {
+	API = {
 		"modules": modules_json,
 		"runtime": runtime_json
 	}
 
 	# asset endpoints
-	assets = {
+	ASSETS = {
 		"modules": modules_asset,
 		"runtime": runtime_asset
 	}
 
-	_kiwi.say('starting server...')
+	KIWI.say('starting server...')
 
 	# start server process
 	server = Daemonize(app=__name__, pid=pid_file_path, action=start_server)
