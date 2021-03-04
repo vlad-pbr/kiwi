@@ -15,6 +15,7 @@ from time import sleep
 from flask import Flask, request, abort, send_from_directory
 from werkzeug.exceptions import HTTPException
 from werkzeug.serving import run_simple
+from gevent.pywsgi import WSGIServer
 
 import jsonpickle
 
@@ -146,38 +147,11 @@ def serve_kiwi():
 	return kiwi_asset()
 
 def start_server():
-	from gevent.pywsgi import WSGIServer
-
-	http_server = WSGIServer(('', int(KIWI.config.local.server.port)), app)
-	http_server.serve_forever()
+	WSGIServer((KIWI.config.local.server.host, KIWI.config.local.server.port), app).serve_forever()
 
 def run(kiwi):
 
-	pid_file_path = kiwi.Helper.join(kiwi.config.local.home_dir, 'PID')
-
-	# open PID file
-	if isfile(pid_file_path):
-		with open(pid_file_path, 'r') as pid_file:
-			pid = int(pid_file.read())
-
-			# if server is already running
-			if pid:
-				try:
-					kill(pid, 0)
-				except OSError:
-					pass
-				else:
-					kiwi.say('stopping server...')
-
-					# kill daemon and remove PID file
-					kill(pid, 9)
-					remove(pid_file_path)
-
-					exit(0)
-
-	global KIWI
-	global API
-	global ASSETS
+	global KIWI, API, ASSETS
 
 	KIWI = kiwi
 
@@ -193,8 +167,38 @@ def run(kiwi):
 		"runtime": runtime_asset
 	}
 
-	KIWI.say('starting server...')
+	# foreground
+	if KIWI.config.local.server.foreground:
+		KIWI.say('listening on {}:{}'.format(KIWI.config.local.server.host, KIWI.config.local.server.port))
+		start_server()
 
-	# start server process
-	server = Daemonize(app=__name__, pid=pid_file_path, action=start_server)
-	server.start()
+	# background
+	else:
+
+		pid_file_path = KIWI.Helper.join(KIWI.config.local.home_dir, 'PID')
+
+		# open PID file
+		if isfile(pid_file_path):
+			with open(pid_file_path, 'r') as pid_file:
+				pid = int(pid_file.read())
+
+				# if server is already running
+				if pid:
+					try:
+						kill(pid, 0)
+					except OSError:
+						pass
+					else:
+						KIWI.say('stopping daemon...')
+
+						# kill daemon and remove PID file
+						kill(pid, 9)
+						remove(pid_file_path)
+
+						exit(0)
+
+		KIWI.say('starting daemon...')
+
+		# start server process
+		server = Daemonize(app=__name__, pid=pid_file_path, action=start_server)
+		server.start()
