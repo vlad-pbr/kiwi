@@ -89,9 +89,6 @@ for dep in ['requests', 'jsonpickle']:
 import requests
 import jsonpickle
 
-# unconfigurable globals
-home_dir = expanduser("~/.kiwi")
-
 # global kiwi instance
 KIWI = None
 
@@ -118,7 +115,7 @@ class Kiwi:
 				# install missing module
 				self.assets.install(current_asset)
 
-			return Kiwi.import_module('kiwi_' + module.value, current_asset.local).run(*args)
+			return Kiwi.import_module('{}_{}'.format(Kiwi.Config.kiwi_name, module.value), current_asset.local).run(*args)
 
 		def update(self, message):
 		
@@ -237,7 +234,9 @@ class Kiwi:
 
 	# configurable vars
 	class Config:
-		_home_dir = home_dir
+
+		kiwi_name = os.path.basename(os.path.abspath(__file__))
+		home_dir = expanduser("~/.{}".format(kiwi_name))
 
 		def dump(self):
 			return dumps(Utils.Configurator.export(self), indent=4) + "\n"
@@ -264,9 +263,9 @@ class Kiwi:
 					class client:
 
 						def __init__(self):
-							self.modules_dir = home_dir + "/modules"
-							self.runtime_dir = home_dir + "/runtime"
-							self.modules_home_dir = home_dir + "/modules_home"
+							self.modules_dir = Kiwi.Config.home_dir + "/modules"
+							self.runtime_dir = Kiwi.Config.home_dir + "/runtime"
+							self.modules_home_dir = Kiwi.Config.home_dir + "/modules_home"
 							self.cache_dir = ""
 
 					@Utils.Configurator.exported
@@ -322,7 +321,7 @@ class Kiwi:
 
 	def __init__(self, config_path=None, server=False):
 
-		default_config_path = Kiwi.Helper.join(home_dir, "kiwi.json")
+		default_config_path = Kiwi.Helper.join(Kiwi.Config.home_dir, "{}.json".format(Kiwi.Config.kiwi_name))
 
 		# if custom config file is specified - try using it
 		if config_path:
@@ -480,7 +479,7 @@ class Kiwi:
 
 	@staticmethod
 	def say(jibberish, newline=True):
-		print('kiwi: ' + jibberish + ('\n' if newline else ''), end='')
+		print(Kiwi.Config.kiwi_name + ': ' + jibberish + ('\n' if newline else ''), end='')
 
 	@staticmethod
 	def import_module(module_name, module_path):
@@ -626,11 +625,12 @@ class Kiwi:
 def main():
 
 	"""
-	I'm kiwi. I fetch, update and run kiwi modules.
+	I'm {0}. I fetch, update and run {0} modules.
 
-	* To get a module, use 'kiwi -g [module]'
-	* To run a module, use 'kiwi [module]'
+	* To get a module, use '{0} -g [module]'
+	* To run a module, use '{0} [module]'
 	"""
+	main.__doc__ = main.__doc__.format(Kiwi.Config.kiwi_name)
 
 	global KIWI
 

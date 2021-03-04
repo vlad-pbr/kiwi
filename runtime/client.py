@@ -36,8 +36,8 @@ def run(kiwi, args):
 			if len(modules) > 1:
 				kiwi.say("can't have 'all' argument with other modules listed")
 				print("Possible solutions:")
-				print("\t* kiwi {} all".format(sys.argv[1]))
-				print("\t* kiwi " + sys.argv[1] + ' ' + ' '.join([module for module in modules if module != 'all']))
+				print("\t* {} {} all".format(kiwi.Config.kiwi_name, sys.argv[1]))
+				print("\t* " + kiwi.Config.kiwi_name + " " + sys.argv[1] + ' ' + ' '.join([module for module in modules if module != 'all']))
 				sys.exit(1)
 				
 			# collect remote module list if fetching, local list if updating
