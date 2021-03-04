@@ -153,7 +153,7 @@ def start_server():
 
 def run(kiwi):
 
-	pid_file_path = kiwi.Helper.join(kiwi.Config.home_dir, 'PID')
+	pid_file_path = kiwi.Helper.join(kiwi.config.local.home_dir, 'PID')
 
 	# open PID file
 	if isfile(pid_file_path):

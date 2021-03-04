@@ -236,12 +236,11 @@ class Kiwi:
 	class Config:
 
 		kiwi_name = os.path.basename(os.path.abspath(__file__))
-		home_dir = expanduser("~/.{}".format(kiwi_name))
 
 		def dump(self):
 			return dumps(Utils.Configurator.export(self), indent=4) + "\n"
 
-		def __init__(self, config_path=None):
+		def __init__(self, custom_config_path=None):
 
 			@Utils.Configurator.exported
 			class remote:
@@ -259,13 +258,15 @@ class Kiwi:
 
 				def __init__(self):
 
+					self.home_dir = expanduser("~/.{}".format(Kiwi.Config.kiwi_name))
+
 					@Utils.Configurator.exported
 					class client:
 
-						def __init__(self):
-							self.modules_dir = Kiwi.Config.home_dir + "/modules"
-							self.runtime_dir = Kiwi.Config.home_dir + "/runtime"
-							self.modules_home_dir = Kiwi.Config.home_dir + "/modules_home"
+						def __init__(self, home_dir):
+							self.modules_dir = home_dir + "/modules"
+							self.runtime_dir = home_dir + "/runtime"
+							self.modules_home_dir = home_dir + "/modules_home"
 							self.cache_dir = ""
 
 					@Utils.Configurator.exported
@@ -274,11 +275,20 @@ class Kiwi:
 						def __init__(self):
 							self.port = 8080
 
-					self.client = client()
+					self.client = client(self.home_dir)
 					self.server = server()
 
 			self.remote = remote()
 			self.local = local()
+
+			# use custom config if provided
+			if custom_config_path:
+				config_path = custom_config_path
+
+			# try using default config if exists
+			else:
+				default_config_path = "{}/{}.json".format(self.local.home_dir, Kiwi.Config.kiwi_name)
+				config_path = default_config_path if isfile(default_config_path) else None
 
 			if config_path:
 
@@ -321,8 +331,6 @@ class Kiwi:
 
 	def __init__(self, config_path=None, server=False):
 
-		default_config_path = Kiwi.Helper.join(Kiwi.Config.home_dir, "{}.json".format(Kiwi.Config.kiwi_name))
-
 		# if custom config file is specified - try using it
 		if config_path:
 
@@ -334,14 +342,7 @@ class Kiwi:
 				self.config = Kiwi.Config(config_path)
 
 		else:
-
-			# if default config does not exist - load from default
-			if not isfile(default_config_path):
-				self.config = Kiwi.Config()
-
-			# use config in default location
-			else:
-				self.config = Kiwi.Config(default_config_path)
+			self.config = Kiwi.Config()
 
 		# set server bool
 		self.config.side = self.Side.Server if server else self.Side.Client
