@@ -18,7 +18,6 @@ import sys
 from flask import Flask, request, abort, send_from_directory
 from werkzeug.exceptions import HTTPException
 from werkzeug.serving import run_simple
-from gevent.pywsgi import WSGIServer
 
 import jsonpickle
 
@@ -159,12 +158,19 @@ def start_server(logHandler=logging.StreamHandler(sys.stdout)):
 	logHandler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 	api_logger.addHandler(logHandler)
 
-	# initialize wsgi server
-	listener = (KIWI.config.local.server.host, KIWI.config.local.server.port)
-	server = WSGIServer(listener, app, log=api_logger)
-
 	# return wrapped starter function
 	def _start_server():
+
+		# gevent must be imported here as this function runs
+		# after daemon fork. Since gevent creates the event loop
+		# when imported, it would cause a bad interaction between
+		# fork (daemon) and epoll (gevent).
+		from gevent.pywsgi import WSGIServer
+
+		# initialize wsgi server
+		listener = (KIWI.config.local.server.host, KIWI.config.local.server.port)
+		server = WSGIServer(listener, app, log=api_logger)
+
 		api_logger.info('listening on {}:{}'.format(listener[0], listener[1]))
 
 		try:
