@@ -703,7 +703,7 @@ def main():
 		module_group.add_argument('-s', '--server', action='store_true', help="manage serverside module component")
 		exclusive_module_group = module_group.add_mutually_exclusive_group()
 		exclusive_module_group.add_argument('-l', '--list-modules', action='store_true', help="see which modules are installed and which ones are available")
-		exclusive_module_group.add_argument('-g', '--get-modules', metavar="MODULE", nargs='*', help="get missiong modules are see which ones are out of date")
+		exclusive_module_group.add_argument('-g', '--get-modules', metavar="MODULE", nargs='*', help="get missiong modules and see which ones are out of date")
 		exclusive_module_group.add_argument('-u', '--update-modules', metavar="MODULE", nargs='*', help="update local modules to latest version")
 
 		args = parser.parse_args()
