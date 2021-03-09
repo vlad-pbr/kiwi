@@ -68,7 +68,7 @@ def run(kiwi, args):
 	
 		# update outdated modules if need be
 		if len(modules_update) > 0:
-			if kiwi.Helper.ask('Update the outdated modules?', ['y', 'n']) == 'y':
+			if kiwi.Helper.ask('\nUpdate the outdated modules?', ['y', 'n'], 'y' if args.yes else None) == 'y':
 				modules_fetched, _, modules_failed = kiwi.fetch_modules(modules_update, True)
 			else:
 				sys.exit(0)
@@ -83,7 +83,7 @@ def run(kiwi, args):
 	# kiwi self update
 	if args.self_update:
 
-		if kiwi.runtime.update("I have an update"):
+		if kiwi.runtime.update("I have an update", args.yes):
 			kiwi.say("I'm up to date")
 
 	# dump current configuration to file

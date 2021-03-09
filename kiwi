@@ -114,7 +114,7 @@ class Kiwi:
 
 			return Kiwi.import_module('{}_{}'.format(Kiwi.Config.kiwi_name, module.value), current_asset.local).run(*args)
 
-		def update(self, message):
+		def update(self, message, yes=False):
 		
 			runtime_assets = [self.assets.runtime(asset) for asset in self.Modules if isfile(self.assets.runtime(asset).local)]
 			runtime_assets.append(self.assets.kiwi())
@@ -131,7 +131,7 @@ class Kiwi:
 				if assets_to_update:
 					Kiwi.say(message + ". ", False)
 
-					if Kiwi.Helper.ask("Proceed?", ['y', 'n']) == 'y':
+					if Kiwi.Helper.ask("Proceed?", ['y', 'n'], 'y' if yes else None) == 'y':
 						for asset in assets_to_update:
 							self.assets.install(asset)
 
@@ -621,7 +621,12 @@ class Kiwi:
 			return sha256(data.encode(encoding)).hexdigest()
 
 		@staticmethod
-		def ask(query, options):
+		def ask(query, options, answer=None):
+
+			# convenient for 'yes to all' use cases
+			if answer:
+				return answer
+
 			while True:
 				print('{} ({})'.format(query, '/'.join(options)), end=' ')
 				response = input()
@@ -680,7 +685,7 @@ def main():
 		parser.add_argument('-s', '--server', action='store_true')
 		parser.add_argument('-c', '--config', type=str)
 		parser.add_argument('-d', '--dump-config', type=str)
-		parser.add_argument('-y', '--yes', action="store_true") # TODO implement
+		parser.add_argument('-y', '--yes', action="store_true")
 
 		# mutually exclusive args
 		group = parser.add_mutually_exclusive_group()
