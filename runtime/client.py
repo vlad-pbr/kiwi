@@ -106,5 +106,4 @@ def run(kiwi, args):
 
 	# run kiwi module
 	if args.module:
-		sys.argv = args.module
-		return kiwi.runtime.run(kiwi.runtime.Modules.Module, kiwi, sys.argv)
+		return kiwi.run_module(sys.argv[1], " ".join(sys.argv[2:]), client=(not args.server), foreground=True)

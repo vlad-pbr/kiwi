@@ -3,10 +3,10 @@
 import sys
 from os import chdir
 
-def run(kiwi, argv, *ingress):
+def run(kiwi, *ingress):
 
 	# register module name
-	module_name = argv[0]
+	module_name = sys.argv[0]
 
 	# if module is not installed - see if it exists on remote
 	if module_name not in kiwi.get_installed_module_list():
