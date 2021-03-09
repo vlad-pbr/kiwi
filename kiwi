@@ -681,21 +681,39 @@ def main():
 										 formatter_class=argparse.RawDescriptionHelpFormatter)
 
 		# optional arguments
-		parser.add_argument('module', nargs=argparse.REMAINDER, default=None)
-		parser.add_argument('-s', '--server', action='store_true')
-		parser.add_argument('-c', '--config', type=str)
-		parser.add_argument('-d', '--dump-config', type=str)
-		parser.add_argument('-y', '--yes', action="store_true")
+		module_execution_description = \
+			"""
+			run a {0} module by using the following syntax:
+				{0} [ {0} args ] <module name> [ module args ]
+			""".format(Kiwi.Config.kiwi_name)
 
-		# mutually exclusive args
-		group = parser.add_mutually_exclusive_group()
-		group.add_argument('-l', '--list-modules', action="store_true")
-		group.add_argument('-g', '--get-modules', nargs='*')
-		group.add_argument('-u', '--update-modules', nargs='*')
-		group.add_argument('-U', '--self-update', action='store_true')
-		group.add_argument('-S', '--start-server', action='store_true')
+		module_execution_group = parser.add_argument_group(title="module execution", description=module_execution_description)
+		module_execution_group.add_argument('module', nargs=argparse.REMAINDER, default=None, help=argparse.SUPPRESS)
+
+		# kiwi
+		kiwi_group = parser.add_argument_group(title=Kiwi.Config.kiwi_name)
+		kiwi_group.add_argument('-U', '--self-update', action='store_true', help="update {} and runtime".format(Kiwi.Config.kiwi_name))
+		kiwi_group.add_argument('-S', '--start-server', action='store_true', help="start local {} server".format(Kiwi.Config.kiwi_name))
+		kiwi_group.add_argument('-c', '--config', type=str, metavar="PATH", help="path to a custom config json to use")
+		kiwi_group.add_argument('-d', '--dump-config', type=str, metavar="PATH", help="dump current config json to given path")
+		kiwi_group.add_argument('-y', '--yes', action='store_true', help="answer 'yes' to all questions")
+
+		# module management
+		module_group = parser.add_argument_group(title="module management")
+		module_group.add_argument('-s', '--server', action='store_true', help="manage serverside module component")
+		exclusive_module_group = module_group.add_mutually_exclusive_group()
+		exclusive_module_group.add_argument('-l', '--list-modules', action='store_true', help="see which modules are installed and which ones are available")
+		exclusive_module_group.add_argument('-g', '--get-modules', metavar="MODULE", nargs='*', help="get missiong modules are see which ones are out of date")
+		exclusive_module_group.add_argument('-u', '--update-modules', metavar="MODULE", nargs='*', help="update local modules to latest version")
 
 		args = parser.parse_args()
+
+		# disallow these specific kiwi commands with module execution
+		if len(args.module):
+
+			# have to reload kiwi after updating
+			if args.self_update:
+				raise parser.error("can't update {} and run module in a single command".format(Kiwi.Config.kiwi_name))
 
 		# init kiwi
 		kiwi = Kiwi(args.config, args.server or args.start_server)
