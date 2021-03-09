@@ -16,9 +16,7 @@ def run(kiwi, argv, *ingress):
 		
 		# fetch the module
 		else:
-			module_as_list = list()
-			module_as_list.append(module_name)
-			_, _, modules_failed = kiwi.fetch_modules(module_as_list)
+			_, _, modules_failed = kiwi.fetch_modules([module_name])
 			if modules_failed:
 				sys.exit(1)
 

@@ -494,19 +494,19 @@ class Kiwi:
 		devnull.close()
 		return modules_fetched, modules_update, modules_failed
 
-	def run_module(self, module, arguments, client=True):
-		
-		# ensure module presence
-		_, _, modules_failed = self.fetch_modules([ module ], quiet=True)
-		if modules_failed:
-			self.say('could not resolve the following dependency: {}'.format(modules_failed))
-			sys.exit(1)
+	def run_module(self, module, arguments, client=None):
+
+		# set side to client by default
+		if not client:
+			client = self.config.side == Kiwi.Side.Client
 
 		# set new argv
 		argv_backup = sys.argv
 		sys.argv = [ module ] + shlex.split(arguments)
 
 		# backup stdout
+		# TODO this does not show stdout until called module is done
+		# in case any input is required by called module - we got a problem
 		stdout_backup = sys.stdout
 		stdout = StringIO()
 		sys.stdout = stdout
@@ -674,7 +674,7 @@ def main():
 		parser.add_argument('-s', '--server', action='store_true')
 		parser.add_argument('-c', '--config', type=str)
 		parser.add_argument('-d', '--dump-config', type=str)
-		parser.add_argument('-y', '--yes', action="store_true")
+		parser.add_argument('-y', '--yes', action="store_true") # TODO implement
 
 		# mutually exclusive args
 		group = parser.add_mutually_exclusive_group()
