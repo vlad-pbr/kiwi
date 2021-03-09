@@ -38,7 +38,7 @@ def run(kiwi, args):
 			print('[{}] {}: {}'.format('?', module, kiwi.get_module_description(module)))
 
 	# fetching and updating modules have the same logic behind them
-	elif args.get_modules or args.update_modules:
+	if args.get_modules or args.update_modules:
 		modules = args.get_modules if args.get_modules else args.update_modules
 
 		# fetching / updating all modules
@@ -88,14 +88,23 @@ def run(kiwi, args):
 			]))
 	
 	# kiwi self update
-	elif args.self_update:
+	if args.self_update:
 
 		if kiwi.runtime.update("I have an update"):
 			kiwi.say("I'm up to date")
 
 	# dump current configuration to file
-	elif args.dump_config:
+	if args.dump_config:
 		with open(args.dump_config, 'w') as config_file:
 			config_file.write(kiwi.config.dump())
 
 		kiwi.say("dumped current configuration to '{}'".format(args.dump_config))
+
+	# start kiwi server
+	if args.start_server:
+		return kiwi.runtime.run(kiwi.runtime.Modules.Server, kiwi)
+
+	# run kiwi module
+	if args.module:
+		sys.argv = args.module
+		return kiwi.runtime.run(kiwi.runtime.Modules.Module, kiwi, sys.argv)

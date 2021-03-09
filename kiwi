@@ -89,9 +89,6 @@ for dep in ['requests', 'jsonpickle']:
 import requests
 import jsonpickle
 
-# global kiwi instance
-KIWI = None
-
 class Kiwi:
 
 	class _Runtime:
@@ -497,6 +494,35 @@ class Kiwi:
 		devnull.close()
 		return modules_fetched, modules_update, modules_failed
 
+	def run_module(self, module, arguments, client=True):
+		
+		# ensure module presence
+		_, _, modules_failed = self.fetch_modules([ module ], quiet=True)
+		if modules_failed:
+			self.say('could not resolve the following dependency: {}'.format(modules_failed))
+			sys.exit(1)
+
+		# set new argv
+		argv_backup = sys.argv
+		sys.argv = [ module ] + shlex.split(arguments)
+
+		# backup stdout
+		stdout_backup = sys.stdout
+		stdout = StringIO()
+		sys.stdout = stdout
+
+		# backup kiwi side value
+		side_backup = self.config.side
+		self.config.side = Kiwi.Side.Client if client else self.config.side
+
+		# run module with arguments
+		try:
+			return self.runtime.run(self.runtime.Modules.Module, self, sys.argv), stdout.getvalue()
+		finally:
+			sys.argv = argv_backup
+			sys.stdout = stdout_backup
+			self.config.side = side_backup
+
 	@staticmethod
 	def say(jibberish, newline=True):
 		print(Kiwi.Config.kiwi_name + ': ' + jibberish + ('\n' if newline else ''), end='')
@@ -534,13 +560,22 @@ class Kiwi:
 
 	class Helper:
 
-		def __init__(self, name):
+		def __init__(self, name, kiwi):
 			self.module_name = name
-			self.module_home = Kiwi.Helper.join(KIWI.config.local.client.modules_home_dir, name)
-			self.module_desc = KIWI.get_module_description(name)
-			self.module_remote = Kiwi.Helper.join(KIWI.config.remote.serverside_endpoint, 'module', name)
+			self.module_home = Kiwi.Helper.join(kiwi.config.local.client.modules_home_dir, name)
+			self.module_desc = kiwi.get_module_description(name)
+			self.module_remote = Kiwi.Helper.join(kiwi.config.remote.serverside_endpoint, 'module', name)
 
+			# ensure module home directory
 			self.ensure_directory(self.module_home)
+
+			# module running function wrapper for modules to use
+			def run_module():
+				def _run_module(module, arguments=""):
+					return kiwi.run_module(module, arguments, client=True)
+				return _run_module
+
+			self.module = run_module()
 
 		def write_crashlog(self, exception_type, exception, exception_traceback):
 
@@ -566,36 +601,6 @@ class Kiwi:
 			response = requests.post(self.module_remote, json=jsonpickle.encode(request), timeout=timeout)
 			response.raise_for_status()
 			return jsonpickle.decode(response.text)
-
-		@staticmethod
-		def module(module, arguments):
-
-			# ensure module presence
-			_, _, modules_failed = KIWI.fetch_modules([ module ], quiet=True)
-			if modules_failed:
-				KIWI.say('could not resolve the following dependency: {}'.format(modules_failed))
-				sys.exit(1)
-
-			# set new argv
-			argv_backup = sys.argv
-			sys.argv = [ module ] + shlex.split(arguments)
-
-			# backup stdout
-			stdout_backup = sys.stdout
-			stdout = StringIO()
-			sys.stdout = stdout
-
-			# backup kiwi side value
-			side_backup = KIWI.config.side
-			KIWI.config.side = Kiwi.Side.Client
-
-			# run module with arguments
-			try:
-				return KIWI.runtime.run(KIWI.runtime.Modules.Module, KIWI, sys.argv), stdout.getvalue()
-			finally:
-				sys.argv = argv_backup
-				sys.stdout = stdout_backup
-				KIWI.config.side = side_backup
 
 		@staticmethod
 		def report(e, description=None, fatal=False):
@@ -652,30 +657,24 @@ def main():
 	"""
 	main.__doc__ = main.__doc__.format(Kiwi.Config.kiwi_name)
 
-	global KIWI
-
 	# no arguments passed
 	if len(sys.argv) == 1:
 
 		print(main.__doc__)
 		print('\tTry getting and running the \'helloworld\' module!\n')
 
-	# module execution
-	elif len(sys.argv) > 1 and sys.argv[1][:1] != '-':
-		KIWI = Kiwi()
-		sys.argv.pop(0)
-		return KIWI.runtime.run(KIWI.runtime.Modules.Module, KIWI, sys.argv)
-
-	# kiwi execution
 	else:
 
 		# parse args
 		parser = argparse.ArgumentParser(description=main.__doc__,
 										 formatter_class=argparse.RawDescriptionHelpFormatter)
 
-		# kiwi server/client side boolean
+		# optional arguments
+		parser.add_argument('module', nargs=argparse.REMAINDER, default=None)
 		parser.add_argument('-s', '--server', action='store_true')
 		parser.add_argument('-c', '--config', type=str)
+		parser.add_argument('-d', '--dump-config', type=str)
+		parser.add_argument('-y', '--yes', action="store_true")
 
 		# mutually exclusive args
 		group = parser.add_mutually_exclusive_group()
@@ -684,20 +683,14 @@ def main():
 		group.add_argument('-u', '--update-modules', nargs='*')
 		group.add_argument('-U', '--self-update', action='store_true')
 		group.add_argument('-S', '--start-server', action='store_true')
-		group.add_argument('-d', '--dump-config', type=str)
 
 		args = parser.parse_args()
 
 		# init kiwi
-		KIWI = Kiwi(args.config, args.server or args.start_server)
+		kiwi = Kiwi(args.config, args.server or args.start_server)
 
-		# start kiwi server
-		if args.start_server:
-			return KIWI.runtime.run(KIWI.runtime.Modules.Server, KIWI)
-
-		# pass arguments to kiwi client
-		else:
-			return KIWI.runtime.run(KIWI.runtime.Modules.Client, KIWI, args)
+		# run kiwi client
+		return kiwi.runtime.run(kiwi.runtime.Modules.Client, kiwi, args)
 
 if __name__ == "__main__":
         main()

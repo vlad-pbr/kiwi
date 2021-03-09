@@ -31,7 +31,7 @@ def run(kiwi, argv, *ingress):
 	else:
 
 		# kiwi helper functions and variables
-		helper = kiwi.Helper(module_name)
+		helper = kiwi.Helper(module_name, kiwi)
 
 		# change directory to module directory
 		chdir(helper.module_home)
