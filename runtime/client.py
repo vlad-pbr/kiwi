@@ -38,28 +38,21 @@ def run(kiwi, args):
 			print('[{}] {}: {}'.format('?', module, kiwi.get_module_description(module)))
 
 	# fetching and updating modules have the same logic behind them
-	if args.get_modules or args.update_modules:
-		modules = args.get_modules if args.get_modules else args.update_modules
+	if args.get_modules is not None or args.update_modules is not None:
+		modules = args.get_modules if args.get_modules is not None else args.update_modules
 
 		# fetching / updating all modules
-		if 'all' in modules:
-			if len(modules) > 1:
-				kiwi.say(bulleted_list("can't have 'all' argument with other modules listed\nSolutions:", [
-					"{} {} all".format(kiwi.Config.kiwi_name, sys.argv[1]),
-					kiwi.Config.kiwi_name + " " + sys.argv[1] + ' ' + ' '.join([module for module in modules if module != 'all'])
-				]))
-				sys.exit(1)
+		if not len(modules):
 				
 			# collect remote module list if fetching, local list if updating
+			if args.get_modules is not None:
+				try:
+					modules = kiwi.get_remote_module_list()
+				except requests.exceptions.RequestException:
+					kiwi.say("could not reach remote to fetch module list")
+					sys.exit(1)
 			else:
-				if args.get_modules:
-					try:
-						modules = kiwi.get_remote_module_list()
-					except requests.exceptions.RequestException:
-						kiwi.say("could not reach remote to fetch module list")
-						sys.exit(1)
-				else:
-					modules = kiwi.get_installed_module_list()
+				modules = kiwi.get_installed_module_list()
 
 		# fetch / update collected modules
 		modules_fetched, modules_update, modules_failed = kiwi.fetch_modules(modules, args.update_modules != None)
