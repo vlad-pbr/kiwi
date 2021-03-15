@@ -12,7 +12,7 @@ It really helped me keep tabs on my progress and see how many lessons I've done 
 """
 
 import argparse
-from os.path import isfile, join
+from os.path import isfile, join, getsize
 from datetime import datetime
 from subprocess import call
 from tempfile import mkstemp
@@ -23,14 +23,14 @@ def get_timestamp():
 
 def read(kiwi, topic, from_file=None):
 	if not from_file:
-		_, content = kiwi.module('storage', 'source -r -S {} -n {}'.format(join(kiwi.module_home, 'sources'), topic))
+		_, content = kiwi.module('storage', 'source -r -S {} -n {}'.format(join(kiwi.module_home, 'sources'), topic), foreground=False)
 		return content
 	
-	_, content = kiwi.module('storage', 'retrieve -s file -d {}'.format(from_file))
+	_, content = kiwi.module('storage', 'retrieve -s file -d {}'.format(from_file), foreground=False)
 	return content
 
 def get_topics(kiwi):
-	_, topics = kiwi.module('storage', "source -l -S {}".format(join(kiwi.module_home, 'sources')))
+	_, topics = kiwi.module('storage', "source -l -S {}".format(join(kiwi.module_home, 'sources')), foreground=False)
 	return topics
 
 def write(kiwi, log, topic):
@@ -48,9 +48,7 @@ def write(kiwi, log, topic):
 		log = journal + format_log(log)
 
 	# use storage module to store the journal
-	_, stdout = kiwi.module('storage', 'source -S {} -m "{}" -n {} -c "{}"'.format(join(kiwi.module_home, 'sources'), get_timestamp(), topic, log))
-
-	print(stdout.rstrip())
+	kiwi.module('storage', 'source -S {} -m "{}" -n {} -c "{}"'.format(join(kiwi.module_home, 'sources'), get_timestamp(), topic, log), foreground=True)
 
 def format_log(log):
 	out = '-'*50 + '\n'
@@ -107,6 +105,11 @@ def kiwi_main(kiwi):
 			log_file_fd, log_file_path = mkstemp()
 			close(log_file_fd)
 			call('vi {}'.format(log_file_path), shell=True)
+
+			# ensure content was written
+			if getsize(log_file_path) == 0:
+				print("No content was stored.")
+				return
 
 			# read from temp file and delete
 			with open(log_file_path, 'r') as log_file:
