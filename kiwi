@@ -678,20 +678,17 @@ def main():
 
 		# parse args
 		parser = argparse.ArgumentParser(description=main.__doc__,
-										 formatter_class=argparse.RawDescriptionHelpFormatter)
+										 formatter_class=lambda prog: argparse.RawDescriptionHelpFormatter(prog, max_help_position=32),
+										 add_help=False)
 
-		# optional arguments
-		module_execution_description = \
-			"""
-			run a {0} module by using the following syntax:
-				{0} [ {0} args ] <module name> [ module args ]
-			""".format(Kiwi.Config.kiwi_name)
-
+		# module execution
+		module_execution_description = "\n{0} [ {0} args ] <module name> [ module args ]".format(Kiwi.Config.kiwi_name)
 		module_execution_group = parser.add_argument_group(title="module execution", description=module_execution_description)
 		module_execution_group.add_argument('module', nargs=argparse.REMAINDER, default=None, help=argparse.SUPPRESS)
 
 		# kiwi
 		kiwi_group = parser.add_argument_group(title=Kiwi.Config.kiwi_name)
+		kiwi_group.add_argument('-h', '--help', action='help', help="show this help message and exit")
 		kiwi_group.add_argument('-U', '--self-update', action='store_true', help="update {} and runtime".format(Kiwi.Config.kiwi_name))
 		kiwi_group.add_argument('-S', '--start-server', action='store_true', help="start local {} server".format(Kiwi.Config.kiwi_name))
 		kiwi_group.add_argument('-c', '--config', type=str, metavar="PATH", help="path to a custom config json to use")
@@ -707,13 +704,6 @@ def main():
 		exclusive_module_group.add_argument('-u', '--update-modules', metavar="MODULE", nargs='*', help="update local modules to latest version")
 
 		args = parser.parse_args()
-
-		# disallow these specific kiwi commands with module execution
-		if len(args.module):
-
-			# have to reload kiwi after updating
-			if args.self_update:
-				raise parser.error("can't update {} and run module in a single command".format(Kiwi.Config.kiwi_name))
 
 		# init kiwi
 		kiwi = Kiwi(args.config, args.server or args.start_server)
