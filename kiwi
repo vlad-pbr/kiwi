@@ -494,7 +494,7 @@ class Kiwi:
 		devnull.close()
 		return modules_fetched, modules_update, modules_failed
 
-	def run_module(self, module, arguments, client=True, foreground=True):
+	def run_module(self, module, arguments, *args, client=True, foreground=True):
 
 		def _run_module():
 			
@@ -508,7 +508,7 @@ class Kiwi:
 
 			# run module with arguments
 			try:
-				return self.runtime.run(self.runtime.Modules.Module, self)
+				return self.runtime.run(self.runtime.Modules.Module, self, *args)
 			finally:
 				sys.argv = argv_backup
 				self.config.side = side_backup

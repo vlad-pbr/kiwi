@@ -76,7 +76,7 @@ def module(module):
 		ingress = Ingress(jsonpickle.decode(request.get_json()))
 
 		# get response from serverside module
-		response = KIWI.runtime.run(KIWI.runtime.Modules.Module, KIWI, [ module ], ingress )
+		response = KIWI.run_module(module, "", ingress, client=False)
 
 		# finalize ingress object
 		ingress.__del__()
