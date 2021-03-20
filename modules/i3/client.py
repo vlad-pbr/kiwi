@@ -5,7 +5,6 @@ These are some of the common commands to be used with i3 keybindings and polybar
 '''
 
 import argparse
-import pulsectl
 import math
 import os
 from requests import Request
@@ -44,6 +43,8 @@ def kiwi_main(kiwi):
 
 	# system volume control
 	if args.action == "volume":
+
+		import pulsectl
 
 		# must provide a range to print it out
 		if not args.quiet and not args.intervals:
