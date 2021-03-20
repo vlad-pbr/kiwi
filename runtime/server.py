@@ -23,8 +23,9 @@ import jsonpickle
 
 class Ingress:
 
-	def __init__(self, request):
+	def __init__(self, request, external_request):
 		self.request = request
+		self.external_request = external_request
 		self.socket_fd, self.socket_path = mkstemp()
 
 		# take care of slash edge cases
@@ -73,7 +74,7 @@ def module(module):
 	try:
 
 		# new ingress object for received request
-		ingress = Ingress(jsonpickle.decode(request.get_json()))
+		ingress = Ingress(jsonpickle.decode(request.get_json()), request)
 
 		# get response from serverside module
 		response = KIWI.run_module(module, "", ingress, client=False)
