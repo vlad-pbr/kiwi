@@ -73,8 +73,11 @@ app = Flask(__name__[:-3])
 def module(module):
 	try:
 
+		# store external request before ingress overwrites it
+		external_request = request
+
 		# new ingress object for received request
-		ingress = Ingress(jsonpickle.decode(request.get_json()), request)
+		ingress = Ingress(jsonpickle.decode(request.get_json()), external_request)
 
 		# get response from serverside module
 		response = KIWI.run_module(module, "", ingress, client=False)
