@@ -8,6 +8,8 @@ import argparse
 import pulsectl
 import math
 import os
+from requests import Request
+from json import loads
 
 VOLUME_CACHE_FILENAME = "VOLUME_CACHE"
 
@@ -33,6 +35,10 @@ def kiwi_main(kiwi):
 	volume_control_group.add_argument("-u", "--unmute", action="store_true", help="unmute sound")
 	volume_control_group.add_argument("-i", "--increment", type=int, metavar="PERCENTAGE", help="increment volume by specified percentage", choices=range(1, 100))
 	volume_control_group.add_argument("-d", "--decrement", type=int, metavar="PERCENTAGE", help="decrement volume by specified percentage", choices=range(1, 100))
+
+	# networking information
+	net_subparser = subparsers.add_parser("net")
+	net_subparser.add_argument("-q", "--query", type=str, metavar="OPTION", help="which attribute should be returned")
 
 	args = parser.parse_args()
 
@@ -107,3 +113,13 @@ def kiwi_main(kiwi):
 				volume_range = args.range_symbol * args.intervals
 				value_index = max(0, math.floor(args.intervals * current_volume) - 1)
 				print(volume_range[:value_index] + args.value_symbol + volume_range[value_index + 1:])
+
+	# networking information
+	elif args.action == "net":
+		response = kiwi.request(Request('GET', '/net/')).text
+
+		# print query if specified, otherwise print everything
+		if args.query:
+			print(loads(response).get(args.query, ""), end="")
+		else:
+			print(response, end="")
