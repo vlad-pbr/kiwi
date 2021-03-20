@@ -10,7 +10,7 @@ def net():
 
     # various client info
     return dumps({
-        "external_ip": request.remote_addr
+        "external_ip": request.environ['REMOTE_ADDR']
     })
 
 def kiwi_main(_, ingress):
