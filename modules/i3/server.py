@@ -5,21 +5,21 @@ from json import dumps
 
 app = Flask(__name__)
 
-EXTERNAL_REQUEST = None
+ENVIRONMENT = None
 
 @app.route('/net/')
 def net():
 
     # various client info
     return dumps({
-        "external_ip": EXTERNAL_REQUEST.environ['REMOTE_ADDR']
+        "external_ip": ENVIRONMENT['REMOTE_ADDR']
     })
 
 def kiwi_main(_, ingress):
 
-    # set external request global for net endpoint
-    global EXTERNAL_REQUEST
-    EXTERNAL_REQUEST = ingress.external_request
+    # set request environment for net endpoint
+    global ENVIRONMENT
+    ENVIRONMENT = ingress.environment
 
     return ingress.handle(app)
     
