@@ -7,12 +7,12 @@ app = Flask(__name__)
 
 ENVIRONMENT = None
 
-@app.route('/net/')
+@app.route('/info/wan')
 def net():
 
     # various client info
     return dumps({
-        "external_ip": ENVIRONMENT['REMOTE_ADDR']
+        "ip": ENVIRONMENT['REMOTE_ADDR']
     })
 
 def kiwi_main(_, ingress):
