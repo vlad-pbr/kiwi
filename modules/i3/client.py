@@ -38,13 +38,12 @@ def kiwi_main(kiwi):
 
 	# system information
 	info_subparser = subparsers.add_parser("info")
-	info_subparser.add_argument("-q", "--query", type=str, metavar="ATTRIBUTE", help="only print specific attribute")
+	info_subparser.add_argument("-j", "--jsonpath", type=str, metavar="PATH", help="fetch specific fields from result")
 	info_subparsers = info_subparser.add_subparsers(dest="info_action")
 
 	# system information
-	wan_subparser = info_subparsers.add_parser("wan")
-	lan_subparser = info_subparsers.add_parser("lan")
-	lan_subparser = info_subparsers.add_parser("ram")
+	for item in [ "wan", "lan", "ram", "swap", "cpu", "net", "temp", "fans", "battery" ]:
+		info_subparsers.add_parser(item)
 
 	args = parser.parse_args()
 
@@ -136,24 +135,38 @@ def kiwi_main(kiwi):
 		elif args.action == "info":
 
 			import psutil
+			import jsonpath
 
-			info_json = {}
-
-			# WAN info
-			if args.info_action == "wan":
-				info_json = loads(kiwi.request(Request('GET', '/info/wan')).text)
-
-			# LAN info per NIC
-			if args.info_action == "lan":
-				info_json = psutil.net_if_addrs()
-
-			# system virtual memory
-			if args.info_action == "ram":
-				info_json = psutil.virtual_memory()._asdict()
+			# get appropriate info
+			info_json = {
+				"wan": lambda: loads(kiwi.request(Request('GET', '/info/wan')).text),
+				"lan": lambda: psutil.net_if_addrs(),
+				"ram": lambda: psutil.virtual_memory()._asdict(),
+				"swap": lambda: psutil.swap_memory()._asdict(),
+				"cpu": lambda: {
+					'system-wide': psutil.cpu_percent(interval=1),
+					'per-cpu': psutil.cpu_percent(percpu=True),
+					'stats': psutil.cpu_stats()._asdict(),
+					'freq': psutil.cpu_freq()._asdict()
+				},
+				"net": lambda: psutil.net_io_counters()._asdict(),
+				"temp": lambda: psutil.sensors_temperatures(),
+				"fans": lambda: psutil.sensors_fans(),
+				"battery": lambda: psutil.sensors_battery()._asdict() if psutil.sensors_battery() else {},
+			}.get(args.info_action, {})()
 
 			# print query if specified, otherwise print everything
-			if args.query:
-				print(info_json.get(args.query, ""), end="")
+			if args.jsonpath:
+				result = jsonpath.jsonpath(loads(dumps(info_json)), args.jsonpath)
+
+				# format result
+				if result:
+					if len(result) == 1:
+						result = result[0]
+				else:
+					result = ""
+
+				print(result, end="")
 			else:
 				print(dumps(info_json, indent=4), end="")
 
