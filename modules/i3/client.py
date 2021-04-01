@@ -152,8 +152,9 @@ def kiwi_main(kiwi):
 				"net": lambda: psutil.net_io_counters()._asdict(),
 				"temp": lambda: psutil.sensors_temperatures(),
 				"fans": lambda: psutil.sensors_fans(),
-				"battery": lambda: psutil.sensors_battery()._asdict() if psutil.sensors_battery() else {},
-			}.get(args.info_action, {})()
+				"battery": lambda: psutil.sensors_battery()._asdict(),
+			}.get(args.info_action, lambda: None)()
+			info_json = info_json if info_json else {}
 
 			# print query if specified, otherwise print everything
 			if args.jsonpath:
