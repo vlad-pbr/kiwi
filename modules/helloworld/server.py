@@ -25,10 +25,10 @@ def greet():
     # return greeting
     return 'Hello from {}{}!'.format(gethostname(), (', ' + name) if name is not None else '')
 
-def kiwi_main(kiwi, ingress):
+def kiwi_main(kiwi, helper):
 
     kiwi.logger.info("Received greeting!")
 
     # let helper ingress object take care of the request based on given app
-    return ingress.handle(app)
+    return helper.ingress.handle(app)
     

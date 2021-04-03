@@ -15,11 +15,11 @@ def net():
         "ip": ENVIRONMENT['REMOTE_ADDR']
     })
 
-def kiwi_main(_, ingress):
+def kiwi_main(_, helper):
 
     # set request environment for net endpoint
     global ENVIRONMENT
-    ENVIRONMENT = ingress.environment
+    ENVIRONMENT = helper.ingress.environment
 
-    return ingress.handle(app)
+    return helper.ingress.handle(app)
     

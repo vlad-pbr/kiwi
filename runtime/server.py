@@ -21,47 +21,53 @@ from werkzeug.serving import run_simple
 
 import jsonpickle
 
-class Ingress:
+class ServerHelper:
+
+	class Ingress:
+
+		def __init__(self, request, environment):
+			self.request = request
+			self.environment = environment
+			self.socket_fd, self.socket_path = mkstemp()
+
+			# take care of slash edge cases
+			if self.request.url:
+				self.request.url = self.request.url if request.url[0] != '/' else self.request.url[1:]
+			else:
+				self.request.url = ''
+
+			# set url to unix socket and prepare
+			request.url = "http+unix://{}/{}".format(quote(self.socket_path, safe=''), request.url)
+			self.request = request.prepare()
+
+		def __del__(self):
+			close(self.socket_fd)
+			remove(self.socket_path)
+
+		def handle(self, app):
+
+			# run server on unix socket
+			def run_server():
+				run_simple("unix://{}".format(self.socket_path), port=8080, application=app)
+			Thread(target=run_server, daemon=True).start()
+
+			# new socket session
+			socket_session = Session()
+
+			# query socket until received a valid response
+			while True:
+				try:
+					return socket_session.send(request=self.request)
+				except ConnectionError:
+					sleep(0.1)
+				except:
+					return None
+				finally:
+					socket_session.close()
 
 	def __init__(self, request, environment):
-		self.request = request
-		self.environment = environment
-		self.socket_fd, self.socket_path = mkstemp()
 
-		# take care of slash edge cases
-		if self.request.url:
-			self.request.url = self.request.url if request.url[0] != '/' else self.request.url[1:]
-		else:
-			self.request.url = ''
-
-		# set url to unix socket and prepare
-		request.url = "http+unix://{}/{}".format(quote(self.socket_path, safe=''), request.url)
-		self.request = request.prepare()
-
-	def __del__(self):
-		close(self.socket_fd)
-		remove(self.socket_path)
-
-	def handle(self, app):
-
-		# run server on unix socket
-		def run_server():
-			run_simple("unix://{}".format(self.socket_path), port=8080, application=app)
-		Thread(target=run_server, daemon=True).start()
-
-		# new socket session
-		socket_session = Session()
-
-		# query socket until received a valid response
-		while True:
-			try:
-				return socket_session.send(request=self.request)
-			except ConnectionError:
-				sleep(0.1)
-			except:
-				return None
-			finally:
-				socket_session.close()
+		self.ingress = self.Ingress(request, environment)
 
 KIWI = None
 API = {}
@@ -73,11 +79,11 @@ app = Flask(__name__[:-3])
 def module(module):
 	try:
 
-		# new ingress object for received request
-		ingress = Ingress(jsonpickle.decode(request.get_json()), request.environ.copy())
+		# various server helpers
+		serverHelper = ServerHelper(jsonpickle.decode(request.get_json()), request.environ.copy())
 
 		# get response from serverside module
-		response = KIWI.run_module(module, "", ingress, client=False)
+		response = KIWI.run_module(module, "", serverHelper, client=False)
 
 		# finalize ingress object
 		ingress.__del__()
