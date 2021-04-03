@@ -247,11 +247,11 @@ class Kiwi:
 			class remote:
 
 				def __init__(self):
-					self.api = "http://remote.imkiwi.me:8080/api/"
-					self.raw = "http://remote.imkiwi.me:8080/assets/"
+					self.api = "https://remote.imkiwi.me:8080/api/"
+					self.raw = "https://remote.imkiwi.me:8080/assets/"
 					self.modules_dir = "modules/"
 					self.runtime_dir = "runtime/"
-					self.serverside_endpoint = "http://remote.imkiwi.me:8080"
+					self.serverside_endpoint = "https://remote.imkiwi.me:8080"
 					self.requests_timeout_seconds = 10
 
 			@Utils.Configurator.exported
@@ -283,6 +283,15 @@ class Kiwi:
 						def __init__(self, home_dir):
 
 							@Utils.Configurator.exported
+							class tls:
+
+								def __init__(self, home_dir, component):
+
+									self.enabled = False
+									self.cert = Kiwi.Helper.join(home_dir, "tls", component + ".crt")
+									self.key = Kiwi.Helper.join(home_dir, "tls", component + ".key")
+
+							@Utils.Configurator.exported
 							class componentSettings:
 
 								def __init__(self, home_dir, component):
@@ -303,6 +312,7 @@ class Kiwi:
 								def __init__(self, home_dir):
 
 									self.component = componentSettings(home_dir, "api")
+									self.tls = tls(home_dir, "api")
 									self.host = '0.0.0.0'
 									self.port = 8080
 									self.foreground = False
@@ -401,7 +411,8 @@ class Kiwi:
 		# init directories
 		for directory in [
 			self.config.local.client.modules_dir,
-			self.config.local.client.runtime_dir
+			self.config.local.client.runtime_dir,
+			Kiwi.Helper.join(self.config.local.home_dir, 'tls'),
 		]:
 			self.Helper.ensure_directory(directory)
 

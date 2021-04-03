@@ -168,9 +168,17 @@ def start_server(logHandler=logging.StreamHandler(sys.stdout)):
 		# fork (daemon) and epoll (gevent).
 		from gevent.pywsgi import WSGIServer
 
+		# enable tls if specified
+		ssl_args = {}
+		if KIWI.config.local.server.api.tls.enabled:
+			ssl_args = {
+                'certfile': KIWI.config.local.server.api.tls.cert,
+				'keyfile': KIWI.config.local.server.api.tls.key,
+            }
+
 		# initialize wsgi server
 		listener = (KIWI.config.local.server.api.host, KIWI.config.local.server.api.port)
-		server = WSGIServer(listener, app, log=api_logger)
+		server = WSGIServer(listener, app, log=api_logger, **ssl_args)
 
 		api_logger.info('listening on {}:{}'.format(listener[0], listener[1]))
 
