@@ -27,6 +27,8 @@ def greet():
 
 def kiwi_main(kiwi, ingress):
 
+    kiwi.logger.info("Received greeting!")
+
     # let helper ingress object take care of the request based on given app
     return ingress.handle(app)
     

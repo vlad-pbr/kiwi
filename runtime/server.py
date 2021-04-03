@@ -169,7 +169,7 @@ def start_server(logHandler=logging.StreamHandler(sys.stdout)):
 		from gevent.pywsgi import WSGIServer
 
 		# initialize wsgi server
-		listener = (KIWI.config.local.server.host, KIWI.config.local.server.port)
+		listener = (KIWI.config.local.server.api.host, KIWI.config.local.server.api.port)
 		server = WSGIServer(listener, app, log=api_logger)
 
 		api_logger.info('listening on {}:{}'.format(listener[0], listener[1]))
@@ -202,7 +202,7 @@ def run(kiwi):
 	}
 
 	# foreground
-	if KIWI.config.local.server.foreground:
+	if KIWI.config.local.server.api.foreground:
 		start_server()()
 
 	# background
@@ -232,14 +232,14 @@ def run(kiwi):
 
 		# ensure log folders
 		for log_file in [
-			KIWI.config.local.server.log.api.path
+			KIWI.config.local.server.api.component.log.path
 		]:
 			KIWI.Helper.ensure_directory(dirname(log_file))
 
 		# api log handler
-		api_log_handler = logging.handlers.RotatingFileHandler(filename=KIWI.config.local.server.log.api.path,
-															   maxBytes=KIWI.config.local.server.log.api.size,
-															   backupCount=KIWI.config.local.server.log.api.backups)
+		api_log_handler = logging.handlers.RotatingFileHandler(filename=KIWI.config.local.server.api.component.log.path,
+															   maxBytes=KIWI.config.local.server.api.component.log.rotation.size,
+															   backupCount=KIWI.config.local.server.api.component.log.rotation.backups)
 
 		# daemon logger setup
 		daemon_logger = logging.getLogger("daemon")

@@ -41,7 +41,10 @@ def kiwi_main(kiwi):
 			else:
 				print('Hello, {}!'.format(args.name))
 
+		kiwi.logger.info("Greeted {}!".format(args.name if args.name else 'world'))
+
 	# if module has serverside logic - kiwi can query it
 	else:
 		params = {} if not args.name else { 'name': args.name }
 		print(kiwi.request(Request('GET', params=params)).text)
+		kiwi.logger.info("Greeted server!")

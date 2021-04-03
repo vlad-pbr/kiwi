@@ -9,6 +9,8 @@ import importlib
 import subprocess
 import ast
 import shlex
+import logging
+from logging.handlers import RotatingFileHandler
 from enum import Enum
 from json import loads, dumps
 from os.path import isfile, expanduser, getsize
@@ -260,6 +262,13 @@ class Kiwi:
 					self.home_dir = expanduser("~/.{}".format(Kiwi.Config.kiwi_name))
 
 					@Utils.Configurator.exported
+					class logRotate:
+
+						def __init__(self, size, backups):
+							self.size = size
+							self.backups = backups
+
+					@Utils.Configurator.exported
 					class client:
 
 						def __init__(self, home_dir):
@@ -274,27 +283,42 @@ class Kiwi:
 						def __init__(self, home_dir):
 
 							@Utils.Configurator.exported
-							class log:
+							class componentSettings:
 
-								def __init__(self, home_dir):
+								def __init__(self, home_dir, component):
 
 									@Utils.Configurator.exported
-									class logRotate:
+									class componentLogger:
 
 										def __init__(self, home_dir, component):
 											self.path = Kiwi.Helper.join(home_dir, "log", component + ".log")
-											self.size = 26214400 # 25MB
-											self.backups = 3
+											self.rotation = logRotate(26214400, 3)
 
-									self.api = logRotate(home_dir, "api")
+									self.enabled = True
+									self.log = componentLogger(home_dir, component)
 
-							self.host = '0.0.0.0'
-							self.port = 8080
-							self.foreground = False
-							self.log = log(home_dir)
+							@Utils.Configurator.exported
+							class api:
+
+								def __init__(self, home_dir):
+
+									self.component = componentSettings(home_dir, "api")
+									self.host = '0.0.0.0'
+									self.port = 8080
+									self.foreground = False
+
+							self.api = api(home_dir)
+
+					@Utils.Configurator.exported
+					class module:
+
+						def __init__(self):
+
+							self.log = logRotate(5242880, 3)
 
 					self.client = client(self.home_dir)
 					self.server = server(self.home_dir)
+					self.module = module()
 
 			self.remote = remote()
 			self.local = local()
@@ -584,6 +608,17 @@ class Kiwi:
 				return _run_module
 
 			self.module = run_module()
+
+			# built-in logger
+			self.logger = logging.getLogger(self.module_name)
+			self.logger.setLevel(logging.INFO)
+			module_log_hander = RotatingFileHandler(
+				filename=Kiwi.Helper.join(self.module_home, "{}.log".format(kiwi.config.side.value)),
+				maxBytes=kiwi.config.local.module.log.size,
+				backupCount=kiwi.config.local.module.log.backups
+			)
+			module_log_hander.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+			self.logger.addHandler(module_log_hander)
 
 		def write_crashlog(self, exception_type, exception, exception_traceback):
 
