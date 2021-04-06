@@ -41,8 +41,11 @@ class ServerHelper:
 			self.request = request.prepare()
 
 		def __del__(self):
-			close(self.socket_fd)
-			remove(self.socket_path)
+			try:
+				close(self.socket_fd)
+				remove(self.socket_path)
+			except OSError:
+				pass
 
 		def handle(self, app):
 
@@ -66,8 +69,10 @@ class ServerHelper:
 					socket_session.close()
 
 	def __init__(self, request, environment):
-
 		self.ingress = self.Ingress(request, environment)
+
+	def __del__(self):
+		self.ingress.__del__()
 
 KIWI = None
 API = {}
@@ -85,8 +90,8 @@ def module(module):
 		# get response from serverside module
 		response = KIWI.run_module(module, "", serverHelper, client=False)
 
-		# finalize ingress object
-		ingress.__del__()
+		# finalize server helper object
+		serverHelper.__del__()
 
 		# response is not allowed to be None
 		if response is None:
