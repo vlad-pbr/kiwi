@@ -290,18 +290,19 @@ class Kiwi:
 									self.enabled = False
 									self.cert = Kiwi.Helper.join(home_dir, "tls", component + ".crt")
 									self.key = Kiwi.Helper.join(home_dir, "tls", component + ".key")
+									self.ca_chain = Kiwi.Helper.join(home_dir, "tls", component + ".chain.crt")
+
+							@Utils.Configurator.exported
+							class componentLogger:
+
+								def __init__(self, home_dir, component):
+									self.path = Kiwi.Helper.join(home_dir, "log", component + ".log")
+									self.rotation = logRotate(26214400, 3)
 
 							@Utils.Configurator.exported
 							class componentSettings:
 
 								def __init__(self, home_dir, component):
-
-									@Utils.Configurator.exported
-									class componentLogger:
-
-										def __init__(self, home_dir, component):
-											self.path = Kiwi.Helper.join(home_dir, "log", component + ".log")
-											self.rotation = logRotate(26214400, 3)
 
 									self.enabled = True
 									self.log = componentLogger(home_dir, component)
@@ -317,7 +318,15 @@ class Kiwi:
 									self.port = 8080
 									self.foreground = False
 
+							@Utils.Configurator.exported
+							class daemon:
+
+								def __init__(self, home_dir):
+
+									self.log = componentLogger(home_dir, "daemon")
+
 							self.api = api(home_dir)
+							self.daemon = daemon(home_dir)
 
 					@Utils.Configurator.exported
 					class module:
@@ -411,8 +420,7 @@ class Kiwi:
 		# init directories
 		for directory in [
 			self.config.local.client.modules_dir,
-			self.config.local.client.runtime_dir,
-			Kiwi.Helper.join(self.config.local.home_dir, 'tls'),
+			self.config.local.client.runtime_dir
 		]:
 			self.Helper.ensure_directory(directory)
 

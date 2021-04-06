@@ -155,15 +155,15 @@ def serve_asset(asset, path):
 def serve_kiwi():
 	return kiwi_asset()
 
-def start_server(logHandler=logging.StreamHandler(sys.stdout)):
+def start_server(apiLogHandler=logging.StreamHandler(sys.stdout)):
 
 	# define logger
 	api_logger = logging.getLogger(KIWI.Config.kiwi_name)
 	api_logger.setLevel(logging.INFO)
 
 	# set up log handler
-	logHandler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-	api_logger.addHandler(logHandler)
+	apiLogHandler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+	api_logger.addHandler(apiLogHandler)
 
 	# return wrapped starter function
 	def _start_server():
@@ -175,12 +175,11 @@ def start_server(logHandler=logging.StreamHandler(sys.stdout)):
 		from gevent.pywsgi import WSGIServer
 
 		# enable tls if specified
-		ssl_args = {}
-		if KIWI.config.local.server.api.tls.enabled:
-			ssl_args = {
-                'certfile': KIWI.config.local.server.api.tls.cert,
-				'keyfile': KIWI.config.local.server.api.tls.key,
-            }
+		ssl_args = {
+			'certfile': KIWI.config.local.server.api.tls.cert,
+			'keyfile': KIWI.config.local.server.api.tls.key,
+			'ca_certs': KIWI.config.local.server.api.tls.ca_chain
+        } if KIWI.config.local.server.api.tls.enabled else {}
 
 		# initialize wsgi server
 		listener = (KIWI.config.local.server.api.host, KIWI.config.local.server.api.port)
@@ -246,7 +245,8 @@ def run(kiwi):
 
 		# ensure log folders
 		for log_file in [
-			KIWI.config.local.server.api.component.log.path
+			KIWI.config.local.server.api.component.log.path,
+			KIWI.config.local.server.daemon.log.path
 		]:
 			KIWI.Helper.ensure_directory(dirname(log_file))
 
@@ -258,11 +258,15 @@ def run(kiwi):
 		# daemon logger setup
 		daemon_logger = logging.getLogger("daemon")
 		daemon_logger.setLevel(logging.INFO)
-		daemon_logger.addHandler(api_log_handler)
+		daemon_log_handler = logging.handlers.RotatingFileHandler(filename=KIWI.config.local.server.daemon.log.path,
+															   	  maxBytes=KIWI.config.local.server.daemon.log.rotation.size,
+															   	  backupCount=KIWI.config.local.server.daemon.log.rotation.backups)
+		daemon_log_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+		daemon_logger.addHandler(daemon_log_handler)
 
 		# start daemon
 		KIWI.say('starting daemon...')
 		Daemonize(app=__name__, pid=pid_file_path,
 								action=start_server(api_log_handler),
 								logger=daemon_logger,
-								keep_fds=[api_log_handler.stream.fileno()]).start()
+								keep_fds=[api_log_handler.stream.fileno(), daemon_log_handler.stream.fileno()]).start()
