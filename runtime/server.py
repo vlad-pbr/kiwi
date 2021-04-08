@@ -162,42 +162,45 @@ def serve_kiwi():
 
 def start_server(apiLogHandler=logging.StreamHandler(sys.stdout)):
 
-	# define logger
-	api_logger = logging.getLogger(KIWI.Config.kiwi_name)
-	api_logger.setLevel(logging.INFO)
-
-	# set up log handler
-	apiLogHandler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-	api_logger.addHandler(apiLogHandler)
-
 	# return wrapped starter function
 	def _start_server():
 
-		# gevent must be imported here as this function runs
-		# after daemon fork. Since gevent creates the event loop
-		# when imported, it would cause a bad interaction between
-		# fork (daemon) and epoll (gevent).
-		from gevent.pywsgi import WSGIServer
+		def _start_api():
 
-		# enable tls if specified
-		ssl_args = {
-			'certfile': KIWI.config.local.server.api.tls.cert,
-			'keyfile': KIWI.config.local.server.api.tls.key,
-			'ca_certs': KIWI.config.local.server.api.tls.ca_chain
-        } if KIWI.config.local.server.api.tls.enabled else {}
+			# gevent must be imported here as this function runs
+			# after daemon fork. Since gevent creates the event loop
+			# when imported, it would cause a bad interaction between
+			# fork (daemon) and epoll (gevent).
+			from gevent.pywsgi import WSGIServer
 
-		# initialize wsgi server
-		listener = (KIWI.config.local.server.api.host, KIWI.config.local.server.api.port)
-		server = WSGIServer(listener, app, log=api_logger, **ssl_args)
+			# define logger
+			api_logger = logging.getLogger(KIWI.Config.kiwi_name)
+			api_logger.setLevel(logging.INFO)
 
-		api_logger.info('listening on {}:{}'.format(listener[0], listener[1]))
+			# set up log handler
+			apiLogHandler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+			api_logger.addHandler(apiLogHandler)
 
-		try:
-			server.serve_forever()
-		except KeyboardInterrupt:
-			api_logger.warn("received keyboard interrupt")
-		finally:
-			api_logger.info("stopping server...")
+			# enable tls if specified
+			ssl_args = {
+				'certfile': KIWI.config.local.server.api.tls.cert,
+				'keyfile': KIWI.config.local.server.api.tls.key,
+				'ca_certs': KIWI.config.local.server.api.tls.ca_chain
+			} if KIWI.config.local.server.api.tls.enabled else {}
+
+			# initialize wsgi server
+			api_listener = (KIWI.config.local.server.api.host, KIWI.config.local.server.api.port)
+			api_server = WSGIServer(api_listener, app, log=api_logger, **ssl_args)
+			api_logger.info('listening on {}:{}'.format(api_listener[0], api_listener[1]))
+
+			try:
+				api_server.serve_forever()
+			except KeyboardInterrupt:
+				api_logger.warn("received keyboard interrupt")
+			finally:
+				api_logger.info("stopping server...")
+
+		_start_api()
 
 	return _start_server
 
