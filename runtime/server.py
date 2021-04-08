@@ -14,6 +14,7 @@ from time import sleep
 
 import logging
 import sys
+import threading
 
 from flask import Flask, request, abort, send_from_directory
 from werkzeug.exceptions import HTTPException
@@ -200,7 +201,12 @@ def start_server(apiLogHandler=logging.StreamHandler(sys.stdout)):
 			finally:
 				api_logger.info("stopping server...")
 
-		_start_api()
+		# run enabled components
+		for component_enabled, run_component in [
+			(KIWI.config.local.server.api.component.enabled, _start_api)
+		]:
+			if component_enabled:
+				threading.Thread(target=run_component, daemon=False).start()
 
 	return _start_server
 
