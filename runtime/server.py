@@ -14,6 +14,8 @@ from time import sleep
 
 import logging
 import sys
+import random
+from string import ascii_uppercase
 
 from flask import Flask, request, abort, send_from_directory
 from werkzeug.exceptions import HTTPException
@@ -77,32 +79,45 @@ class ServerHelper:
 KIWI = None
 API = {}
 ASSETS = {}
+API_LOGGER = None
 
 app = Flask(__name__[:-3])
 
 @app.route('/module/<module>/', methods = ['POST'])
 def module(module):
+
+	# generate request ID
+	request_id = ''.join(random.choice(ascii_uppercase) for _ in range(10))
+	API_LOGGER.info("{}: received serverside request for '{}' module".format(request_id, module))
+
 	try:
 
 		# various server helpers
+		API_LOGGER.info("{}: preparing server helpers".format(request_id))
 		serverHelper = ServerHelper(jsonpickle.decode(request.get_json()), request.environ.copy())
 
 		# get response from serverside module
+		API_LOGGER.info("{}: running '{}' serverside".format(request_id, module))
 		response = KIWI.run_module(module, "", serverHelper, client=False)
 
 		# finalize server helper object
+		API_LOGGER.info("{}: finalizing server helpers".format(request_id))
 		serverHelper.__del__()
 
 		# response is not allowed to be None
 		if response is None:
+			API_LOGGER.error("{}: empty response received from '{}' serverside".format(request_id, module))
 			abort(500)
 
 		# return serialized response object
+		API_LOGGER.info("{}: serializing response".format(request_id))
 		return jsonpickle.encode(response)
 
-	except HTTPException:
+	except HTTPException as e:
+		API_LOGGER.error("{}: HTTP error: {}".format(request_id, e.__str__()))
 		raise
 	except:
+		API_LOGGER.error("{}: unknown kiwi serverside exception".format(request_id))
 		abort(500)
 
 def runtime_json(path):
@@ -167,6 +182,8 @@ def start_server(apiLogHandler=logging.StreamHandler(sys.stdout)):
 
 		def _start_api():
 
+			global API_LOGGER
+
 			# gevent must be imported here as this function runs
 			# after daemon fork. Since gevent creates the event loop
 			# when imported, it would cause a bad interaction between
@@ -174,12 +191,12 @@ def start_server(apiLogHandler=logging.StreamHandler(sys.stdout)):
 			from gevent.pywsgi import WSGIServer
 
 			# define logger
-			api_logger = logging.getLogger(KIWI.Config.kiwi_name)
-			api_logger.setLevel(logging.INFO)
+			API_LOGGER = logging.getLogger(KIWI.Config.kiwi_name)
+			API_LOGGER.setLevel(logging.INFO)
 
 			# set up log handler
 			apiLogHandler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-			api_logger.addHandler(apiLogHandler)
+			API_LOGGER.addHandler(apiLogHandler)
 
 			# enable tls if specified
 			ssl_args = {
@@ -190,15 +207,15 @@ def start_server(apiLogHandler=logging.StreamHandler(sys.stdout)):
 
 			# initialize wsgi server
 			api_listener = (KIWI.config.local.server.api.host, KIWI.config.local.server.api.port)
-			api_server = WSGIServer(api_listener, app, log=api_logger, **ssl_args)
-			api_logger.info('listening on {}:{}'.format(api_listener[0], api_listener[1]))
+			api_server = WSGIServer(api_listener, app, log=API_LOGGER, **ssl_args)
+			API_LOGGER.info('listening on {}:{}'.format(api_listener[0], api_listener[1]))
 
 			try:
 				api_server.serve_forever()
 			except KeyboardInterrupt:
-				api_logger.warn("received keyboard interrupt")
+				API_LOGGER.warn("received keyboard interrupt")
 			finally:
-				api_logger.info("stopping server...")
+				API_LOGGER.info("stopping server...")
 
 		# run enabled components
 		for component_enabled, run_component in [
