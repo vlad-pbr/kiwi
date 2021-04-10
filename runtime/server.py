@@ -219,7 +219,7 @@ def start_server(apiLogHandler=logging.StreamHandler(sys.stdout)):
 
 		# run enabled components
 		for component_enabled, run_component in [
-			(KIWI.config.local.server.api.component.enabled, _start_api)
+			(KIWI.config.local.server.api.enabled, _start_api)
 		]:
 			if component_enabled:
 				Thread(target=run_component, daemon=False).start()
@@ -275,15 +275,15 @@ def run(kiwi):
 
 		# ensure log folders
 		for log_file in [
-			KIWI.config.local.server.api.component.log.path,
+			KIWI.config.local.server.api.log.path,
 			KIWI.config.local.server.daemon.log.path
 		]:
 			KIWI.Helper.ensure_directory(dirname(log_file))
 
 		# api log handler
-		api_log_handler = logging.handlers.RotatingFileHandler(filename=KIWI.config.local.server.api.component.log.path,
-															   maxBytes=KIWI.config.local.server.api.component.log.rotation.size,
-															   backupCount=KIWI.config.local.server.api.component.log.rotation.backups)
+		api_log_handler = logging.handlers.RotatingFileHandler(filename=KIWI.config.local.server.api.log.path,
+															   maxBytes=KIWI.config.local.server.api.log.rotation.size,
+															   backupCount=KIWI.config.local.server.api.log.rotation.backups)
 
 		# daemon logger setup
 		daemon_logger = logging.getLogger("daemon")

@@ -300,22 +300,15 @@ class Kiwi:
 									self.rotation = logRotate(26214400, 3)
 
 							@Utils.Configurator.exported
-							class componentSettings:
+							class component:
 
 								def __init__(self, home_dir, component):
 
 									self.enabled = True
-									self.log = componentLogger(home_dir, component)
-
-							@Utils.Configurator.exported
-							class api:
-
-								def __init__(self, home_dir):
-
-									self.component = componentSettings(home_dir, "api")
 									self.tls = tls(home_dir, "api")
 									self.host = '0.0.0.0'
 									self.port = 8080
+									self.log = componentLogger(home_dir, component)
 
 							@Utils.Configurator.exported
 							class daemon:
@@ -325,7 +318,7 @@ class Kiwi:
 									self.log = componentLogger(home_dir, "daemon")
 									self.foreground = False
 
-							self.api = api(home_dir)
+							self.api = component(home_dir, "api")
 							self.daemon = daemon(home_dir)
 
 					@Utils.Configurator.exported
