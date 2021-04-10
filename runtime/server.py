@@ -245,7 +245,7 @@ def run(kiwi):
 	}
 
 	# foreground
-	if KIWI.config.local.server.api.foreground:
+	if KIWI.config.local.server.daemon.foreground:
 		start_server()()
 
 	# background

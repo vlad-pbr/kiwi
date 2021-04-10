@@ -316,7 +316,6 @@ class Kiwi:
 									self.tls = tls(home_dir, "api")
 									self.host = '0.0.0.0'
 									self.port = 8080
-									self.foreground = False
 
 							@Utils.Configurator.exported
 							class daemon:
@@ -324,6 +323,7 @@ class Kiwi:
 								def __init__(self, home_dir):
 
 									self.log = componentLogger(home_dir, "daemon")
+									self.foreground = False
 
 							self.api = api(home_dir)
 							self.daemon = daemon(home_dir)
