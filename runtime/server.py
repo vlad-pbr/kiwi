@@ -81,9 +81,9 @@ API = {}
 ASSETS = {}
 API_LOGGER = None
 
-app = Flask(__name__[:-3])
+api = Flask(__name__[:-3])
 
-@app.route('/module/<module>/', methods = ['POST'])
+@api.route('/module/<module>/', methods = ['POST'])
 def module(module):
 
 	# generate request ID
@@ -162,16 +162,16 @@ def assets_json(source, path):
 
 	return dumps(response, indent=4)
 
-@app.route('/api/<asset>/')
-@app.route('/api/<asset>/<path:path>')
+@api.route('/api/<asset>/')
+@api.route('/api/<asset>/<path:path>')
 def serve_api(asset, path=''):
 	return API[asset](path) if asset in API else abort(404)
 
-@app.route('/assets/<asset>/<path:path>')
+@api.route('/assets/<asset>/<path:path>')
 def serve_asset(asset, path):
 	return ASSETS[asset](path) if asset in ASSETS else abort(404)
 
-@app.route('/assets/kiwi/')
+@api.route('/assets/kiwi/')
 def serve_kiwi():
 	return kiwi_asset()
 
@@ -207,7 +207,7 @@ def start_server(apiLogHandler=logging.StreamHandler(sys.stdout)):
 
 			# initialize wsgi server
 			api_listener = (KIWI.config.local.server.api.host, KIWI.config.local.server.api.port)
-			api_server = WSGIServer(api_listener, app, log=API_LOGGER, **ssl_args)
+			api_server = WSGIServer(api_listener, api, log=API_LOGGER, **ssl_args)
 			API_LOGGER.info('listening on {}:{}'.format(api_listener[0], api_listener[1]))
 
 			try:
