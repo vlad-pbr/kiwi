@@ -80,17 +80,25 @@ KIWI = None
 API = {}
 ASSETS = {}
 API_LOGGER = None
+CYCLOPS_LOGGER = None
 
-api = Flask(__name__[:-3])
+api = Flask(__name__[:-3] + "_api")
+cyclops = Flask(__name__[:-3] + "_cyclops")
+
+@cyclops.route('/event', methods = ['GET'])
+def cyclops_create_event():
+	return "It's alive!"
 
 @api.route('/module/<module>/', methods = ['POST'])
 def module(module):
 
 	# generate request ID
 	request_id = ''.join(random.choice(ascii_uppercase) for _ in range(10))
-	API_LOGGER.info("{}: received serverside request for '{}' module".format(request_id, module))
 
 	try:
+
+		# aknowledge request
+		API_LOGGER.info("{}: received serverside request for '{}' module".format(request_id, module))
 
 		# various server helpers
 		API_LOGGER.info("{}: preparing server helpers".format(request_id))
@@ -175,51 +183,63 @@ def serve_asset(asset, path):
 def serve_kiwi():
 	return kiwi_asset()
 
-def start_server(apiLogHandler=logging.StreamHandler(sys.stdout)):
+def start_server(apiLogHandler=logging.StreamHandler(sys.stdout), cyclopsLogHandler=logging.StreamHandler(sys.stdout)):
 
 	# return wrapped starter function
 	def _start_server():
 
-		def _start_api():
+		# gevent must be imported here as this function runs
+		# after daemon fork. Since gevent creates the event loop
+		# when imported, it would cause a bad interaction between
+		# fork (daemon) and epoll (gevent).
+		from gevent.pywsgi import WSGIServer
 
-			global API_LOGGER
+		def _start_component_app(component_name, component_dict, component_global_logger_name, logHandler, component_app):
 
-			# gevent must be imported here as this function runs
-			# after daemon fork. Since gevent creates the event loop
-			# when imported, it would cause a bad interaction between
-			# fork (daemon) and epoll (gevent).
-			from gevent.pywsgi import WSGIServer
+			def _start():
 
-			# define logger
-			API_LOGGER = logging.getLogger(KIWI.Config.kiwi_name)
-			API_LOGGER.setLevel(logging.INFO)
+				# define logger
+				globals()[component_global_logger_name] = logging.getLogger(component_name)
+				globals()[component_global_logger_name].setLevel(logging.INFO)
 
-			# set up log handler
-			apiLogHandler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-			API_LOGGER.addHandler(apiLogHandler)
+				# set up log handler
+				logHandler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+				globals()[component_global_logger_name].addHandler(logHandler)
 
-			# enable tls if specified
-			ssl_args = {
-				'certfile': KIWI.config.local.server.api.tls.cert,
-				'keyfile': KIWI.config.local.server.api.tls.key,
-				'ca_certs': KIWI.config.local.server.api.tls.ca_chain
-			} if KIWI.config.local.server.api.tls.enabled else {}
+				# enable tls if specified
+				ssl_args = {
+					'certfile': component_dict.tls.cert,
+					'keyfile': component_dict.tls.key,
+					'ca_certs': component_dict.tls.ca_chain
+				} if component_dict.tls.enabled else {}
 
-			# initialize wsgi server
-			api_listener = (KIWI.config.local.server.api.host, KIWI.config.local.server.api.port)
-			api_server = WSGIServer(api_listener, api, log=API_LOGGER, **ssl_args)
-			API_LOGGER.info('listening on {}:{}'.format(api_listener[0], api_listener[1]))
+				# initialize wsgi server
+				listener = (component_dict.host, component_dict.port)
+				server = WSGIServer(listener, component_app, log=globals()[component_global_logger_name], **ssl_args)
+				globals()[component_global_logger_name].info('listening on {}:{}'.format(listener[0], listener[1]))
 
-			try:
-				api_server.serve_forever()
-			except KeyboardInterrupt:
-				API_LOGGER.warn("received keyboard interrupt")
-			finally:
-				API_LOGGER.info("stopping server...")
+				# serve forever
+				try:
+					server.serve_forever()
+				except KeyboardInterrupt:
+					globals()[component_global_logger_name].warn("received keyboard interrupt")
+				finally:
+					globals()[component_global_logger_name].info("stopping...")
+
+			return _start
 
 		# run enabled components
 		for component_enabled, run_component in [
-			(KIWI.config.local.server.api.enabled, _start_api)
+			(KIWI.config.local.server.api.enabled, _start_component_app("api",
+																		KIWI.config.local.server.api,
+																		'API_LOGGER',
+																		apiLogHandler,
+																		api)),
+			(KIWI.config.local.server.cyclops.enabled, _start_component_app("cyclops",
+																			KIWI.config.local.server.cyclops,
+																			'CYCLOPS_LOGGER',
+																			cyclopsLogHandler,
+																			cyclops))
 		]:
 			if component_enabled:
 				Thread(target=run_component, daemon=False).start()
@@ -280,10 +300,13 @@ def run(kiwi):
 		]:
 			KIWI.Helper.ensure_directory(dirname(log_file))
 
-		# api log handler
+		# component log handlers
 		api_log_handler = logging.handlers.RotatingFileHandler(filename=KIWI.config.local.server.api.log.path,
 															   maxBytes=KIWI.config.local.server.api.log.rotation.size,
 															   backupCount=KIWI.config.local.server.api.log.rotation.backups)
+		cyclops_log_handler = logging.handlers.RotatingFileHandler(filename=KIWI.config.local.server.cyclops.log.path,
+															   maxBytes=KIWI.config.local.server.cyclops.log.rotation.size,
+															   backupCount=KIWI.config.local.server.cyclops.log.rotation.backups)
 
 		# daemon logger setup
 		daemon_logger = logging.getLogger("daemon")
@@ -297,6 +320,8 @@ def run(kiwi):
 		# start daemon
 		KIWI.say('starting daemon...')
 		Daemonize(app=__name__, pid=pid_file_path,
-								action=start_server(api_log_handler),
+								action=start_server(api_log_handler, cyclops_log_handler),
 								logger=daemon_logger,
-								keep_fds=[api_log_handler.stream.fileno(), daemon_log_handler.stream.fileno()]).start()
+								keep_fds=[api_log_handler.stream.fileno(),
+										  daemon_log_handler.stream.fileno(),
+										  cyclops_log_handler.stream.fileno()]).start()
