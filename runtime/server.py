@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
 from os import listdir, kill, remove, close
-from os.path import isdir, exists, isfile, realpath, dirname
-from json import dumps
-from multiprocessing import Process
+from os.path import isdir, exists, isfile, dirname
+from json import dumps, loads
 from daemonize import Daemonize
 from tempfile import mkstemp
 from requests_unixsocket import Session
@@ -15,6 +14,8 @@ from time import sleep
 import logging
 import sys
 import random
+import datetime
+
 from string import ascii_uppercase
 
 from flask import Flask, request, abort, send_from_directory
@@ -75,6 +76,57 @@ class ServerHelper:
 
 	def __del__(self):
 		self.ingress.__del__()
+
+class Cyclops:
+
+	class Event:
+		
+		def __init__(self, date):
+
+			self.date = date
+
+	@staticmethod
+	def start_reconciler():
+		
+		# cyclops reconcile loop
+		def _reconcile_loop():
+
+			# sleep until start of next minute
+			next_loop = datetime.datetime.now()
+			next_loop = next_loop.replace(minute=next_loop.minute + 1, second=0, microsecond=0)
+			delta = next_loop - datetime.datetime.now()
+			CYCLOPS_LOGGER.info("starting reconcile loop in {}s".format(delta.total_seconds()))
+			sleep(delta.total_seconds())
+			
+			while(True):
+
+				# mark loop start time
+				loop_next_date = datetime.datetime.now()
+				loop_next_date = loop_next_date.replace(minute=loop_next_date.minute + 1, second=0, microsecond=0)
+				CYCLOPS_LOGGER.info("reconciling...")
+
+				# reconcile
+				with open(KIWI.config.local.server.cyclops.schedule, 'r') as schedule_file:
+					pass # TODO reconcile logic
+					
+				# sleep and account for difference
+				delta = loop_next_date - datetime.datetime.now()
+				CYCLOPS_LOGGER.info("next reconcile in {}s".format(delta.total_seconds()))
+				sleep(delta.total_seconds())
+
+		# ensure schedule file directory
+		KIWI.Helper.ensure_directory(dirname(KIWI.config.local.server.cyclops.schedule))
+
+		# init schedule file if needed
+		if not exists(KIWI.config.local.server.cyclops.schedule):
+
+			CYCLOPS_LOGGER.info("initiating schedule file at '{}'".format(KIWI.config.local.server.cyclops.schedule))
+
+			with open(KIWI.config.local.server.cyclops.schedule, 'w') as schedule_file:
+				schedule_file.write("[]")
+
+		# start reconcile loop
+		Thread(target=_reconcile_loop, daemon=False).start()
 
 KIWI = None
 API = {}
@@ -194,7 +246,7 @@ def start_server(apiLogHandler=logging.StreamHandler(sys.stdout), cyclopsLogHand
 		# fork (daemon) and epoll (gevent).
 		from gevent.pywsgi import WSGIServer
 
-		def _start_component_app(component_name, component_dict, component_global_logger_name, logHandler, component_app):
+		def _start_component_app(component_name, component_dict, component_global_logger_name, logHandler, component_app, component_auxiliary_func=None):
 
 			def _start():
 
@@ -218,6 +270,10 @@ def start_server(apiLogHandler=logging.StreamHandler(sys.stdout), cyclopsLogHand
 				server = WSGIServer(listener, component_app, log=globals()[component_global_logger_name], **ssl_args)
 				globals()[component_global_logger_name].info('listening on {}:{}'.format(listener[0], listener[1]))
 
+				# run auxiliary function for component if provided
+				if component_auxiliary_func:
+					component_auxiliary_func()
+
 				# serve forever
 				try:
 					server.serve_forever()
@@ -234,12 +290,14 @@ def start_server(apiLogHandler=logging.StreamHandler(sys.stdout), cyclopsLogHand
 																		KIWI.config.local.server.api,
 																		'API_LOGGER',
 																		apiLogHandler,
-																		api)),
+																		api,
+																		None)),
 			(KIWI.config.local.server.cyclops.enabled, _start_component_app("cyclops",
 																			KIWI.config.local.server.cyclops,
 																			'CYCLOPS_LOGGER',
 																			cyclopsLogHandler,
-																			cyclops))
+																			cyclops,
+																			Cyclops.start_reconciler))
 		]:
 			if component_enabled:
 				Thread(target=run_component, daemon=False).start()

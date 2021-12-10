@@ -320,6 +320,7 @@ class Kiwi:
 
 							self.api = component(home_dir, "api", 8080)
 							self.cyclops = component(home_dir, "cyclops", 8081)
+							self.cyclops.schedule = Kiwi.Helper.join(home_dir, "cyclops", "schedule.json")
 							self.daemon = daemon(home_dir)
 
 					@Utils.Configurator.exported
