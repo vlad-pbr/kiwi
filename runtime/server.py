@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-from os import listdir, kill, remove, close
+from importlib.util import LazyLoader
+from os import fork, getpid, listdir, kill, remove, close
 from os.path import isdir, exists, isfile, dirname
 from json import dumps, loads
 from daemonize import Daemonize
@@ -15,6 +16,7 @@ import logging
 import sys
 import random
 import datetime
+import signal
 
 from string import ascii_uppercase
 
@@ -87,18 +89,12 @@ class Cyclops:
 
 	@staticmethod
 	def start_reconciler():
-		
+
 		# cyclops reconcile loop
 		def _reconcile_loop():
 
-			# sleep until start of next minute
-			next_loop = datetime.datetime.now()
-			next_loop = next_loop.replace(minute=next_loop.minute + 1, second=0, microsecond=0)
-			delta = next_loop - datetime.datetime.now()
-			CYCLOPS_LOGGER.info("starting reconcile loop in {}s".format(delta.total_seconds()))
-			sleep(delta.total_seconds())
-			
-			while(True):
+			# a single reconcile with the next alarm setup
+			def _reconcile(signum, stack):
 
 				# mark loop start time
 				loop_next_date = datetime.datetime.now()
@@ -111,8 +107,21 @@ class Cyclops:
 					
 				# sleep and account for difference
 				delta = loop_next_date - datetime.datetime.now()
+				signal.alarm(int(delta.total_seconds()) + 1)
 				CYCLOPS_LOGGER.info("next reconcile in {}s".format(delta.total_seconds()))
-				sleep(delta.total_seconds())
+
+			# handle reconcile alarm
+			signal.signal(signal.SIGALRM, _reconcile)
+
+			# set up alarm at the start of the next minute
+			next_loop = datetime.datetime.now()
+			next_loop = next_loop.replace(minute=next_loop.minute + 1, second=0, microsecond=0)
+			delta = next_loop - datetime.datetime.now()
+			signal.alarm(int(delta.total_seconds()) + 1)
+			CYCLOPS_LOGGER.info("starting reconcile loop in {}s".format(delta.total_seconds()))
+
+			while True:
+				signal.pause()
 
 		# ensure schedule file directory
 		KIWI.Helper.ensure_directory(dirname(KIWI.config.local.server.cyclops.schedule))
@@ -125,8 +134,8 @@ class Cyclops:
 			with open(KIWI.config.local.server.cyclops.schedule, 'w') as schedule_file:
 				schedule_file.write("[]")
 
-		# start reconcile loop
-		Thread(target=_reconcile_loop, daemon=False).start()
+		if fork() == 0:
+			_reconcile_loop()
 
 KIWI = None
 API = {}
