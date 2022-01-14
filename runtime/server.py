@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from importlib.util import LazyLoader
+from operator import ge
 from os import fork, getpid, listdir, kill, remove, close
 from os.path import isdir, exists, isfile, dirname
 from json import dumps, loads
@@ -25,6 +26,37 @@ from werkzeug.exceptions import HTTPException
 from werkzeug.serving import run_simple
 
 import jsonpickle
+
+def generate_id():
+	return ''.join(random.choice(ascii_uppercase) for _ in range(10))
+
+KIWI = None
+API = {}
+ASSETS = {}
+API_LOGGER = None
+CYCLOPS_LOGGER = None
+
+class ServerChildren:
+
+	CHILDREN = []
+
+	@staticmethod
+	def to_be_terminated(pid, name):
+		
+		ServerChildren.CHILDREN.append( (pid, name) )
+
+	@staticmethod
+	def get_handler():
+
+		def _handler(signum, stack):
+
+			for child in ServerChildren.CHILDREN:
+
+				kill(child[0], 15)
+
+			exit(0)
+
+		return _handler
 
 class ServerHelper:
 
@@ -96,19 +128,30 @@ class Cyclops:
 			# a single reconcile with the next alarm setup
 			def _reconcile(signum, stack):
 
-				# mark loop start time
+				# schedule the next reconcile
 				loop_next_date = datetime.datetime.now()
 				loop_next_date = loop_next_date.replace(minute=loop_next_date.minute + 1, second=0, microsecond=0)
-				CYCLOPS_LOGGER.info("reconciling...")
-
-				# reconcile
-				with open(KIWI.config.local.server.cyclops.schedule, 'r') as schedule_file:
-					pass # TODO reconcile logic
-					
-				# sleep and account for difference
 				delta = loop_next_date - datetime.datetime.now()
 				signal.alarm(int(delta.total_seconds()) + 1)
 				CYCLOPS_LOGGER.info("next reconcile in {}s".format(delta.total_seconds()))
+
+				# let child take care of the loop
+				if fork() == 0:
+
+					# generate reconcile id and mark start time
+					reconcile_id = generate_id()
+					reconcile_start_date = datetime.datetime.now()
+					CYCLOPS_LOGGER.info("{}: reconciling...".format(reconcile_id))
+
+					# reconcile
+					with open(KIWI.config.local.server.cyclops.schedule, 'r') as schedule_file:
+						pass # TODO reconcile logic
+
+					# wrap up reconcile
+					reconcile_time_elapsed = datetime.datetime.now() - reconcile_start_date
+					CYCLOPS_LOGGER.info("{}: reconcile over after {}s".format(reconcile_id, reconcile_time_elapsed.total_seconds()))
+
+					exit(0)
 
 			# handle reconcile alarm
 			signal.signal(signal.SIGALRM, _reconcile)
@@ -134,14 +177,14 @@ class Cyclops:
 			with open(KIWI.config.local.server.cyclops.schedule, 'w') as schedule_file:
 				schedule_file.write("[]")
 
-		if fork() == 0:
+		# spawn cyclops process
+		cyclops_pid = fork()
+
+		# start reconcile loop
+		if cyclops_pid == 0:
 			_reconcile_loop()
 
-KIWI = None
-API = {}
-ASSETS = {}
-API_LOGGER = None
-CYCLOPS_LOGGER = None
+		ServerChildren.to_be_terminated(cyclops_pid, "cyclops")
 
 api = Flask(__name__[:-3] + "_api")
 cyclops = Flask(__name__[:-3] + "_cyclops")
@@ -154,7 +197,7 @@ def cyclops_create_event():
 def module(module):
 
 	# generate request ID
-	request_id = ''.join(random.choice(ascii_uppercase) for _ in range(10))
+	request_id = generate_id()
 
 	try:
 
@@ -310,6 +353,9 @@ def start_server(apiLogHandler=logging.StreamHandler(sys.stdout), cyclopsLogHand
 		]:
 			if component_enabled:
 				Thread(target=run_component, daemon=False).start()
+
+		# set up server sigterm handler
+		signal.signal(signal.SIGTERM, ServerChildren.get_handler())
 
 	return _start_server
 
