@@ -50,9 +50,12 @@ class ServerChildren:
 
 		def _handler(signum, stack):
 
-			for child in ServerChildren.CHILDREN:
+			# children inherit signal handlers so a check is necessary
+			if getpid() not in ServerChildren.CHILDREN:
 
-				kill(child[0], 15)
+				for child in ServerChildren.CHILDREN:
+
+					kill(child[0], 15)
 
 			exit(0)
 
@@ -336,6 +339,9 @@ def start_server(apiLogHandler=logging.StreamHandler(sys.stdout), cyclopsLogHand
 
 			return _start
 
+		# set up server sigterm handler
+		signal.signal(signal.SIGTERM, ServerChildren.get_handler())
+
 		# run enabled components
 		for component_enabled, run_component in [
 			(KIWI.config.local.server.api.enabled, _start_component_app("api",
@@ -353,9 +359,6 @@ def start_server(apiLogHandler=logging.StreamHandler(sys.stdout), cyclopsLogHand
 		]:
 			if component_enabled:
 				Thread(target=run_component, daemon=False).start()
-
-		# set up server sigterm handler
-		signal.signal(signal.SIGTERM, ServerChildren.get_handler())
 
 	return _start_server
 
