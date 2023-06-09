@@ -350,7 +350,7 @@ def start_server(apiLogHandler=logging.StreamHandler(sys.stdout), cyclopsLogHand
 																		apiLogHandler,
 																		api,
 																		None)),
-			(KIWI.config.local.server.cyclops.enabled, _start_component_app("cyclops",
+			(False, _start_component_app("cyclops",
 																			KIWI.config.local.server.cyclops,
 																			'CYCLOPS_LOGGER',
 																			cyclopsLogHandler,
